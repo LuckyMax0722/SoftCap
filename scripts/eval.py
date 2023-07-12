@@ -27,7 +27,7 @@ import lib.capeval.bleu.bleu as capblue
 import lib.capeval.cider.cider as capcider
 import lib.capeval.rouge.rouge as caprouge
 import lib.capeval.meteor.meteor as capmeteor
-from lib.dataset import ScannetReferenceDataset, ScannetReferenceTestDataset
+from lib.dataset import ScannetReferenceDataset
 from lib.dataset import get_scanrefer
 from lib.config import CONF
 
@@ -69,24 +69,24 @@ class CapNetEval(pl.LightningModule):
 
         # Define the model
         # ----------- SoftGroup-based Detection Backbone --------------
-        self.softgroup_module = SoftGroup(in_channels=3,
-                                          channels=32,
-                                          num_blocks=7,
-                                          semantic_classes=20,
-                                          instance_classes=18,
-                                          ignore_label=-100,
+        self.softgroup_module = SoftGroup(in_channels=CONF.softgroup.in_channels,
+                                          channels=CONF.softgroup.channels,
+                                          num_blocks=CONF.softgroup.num_blocks,
+                                          semantic_classes=CONF.softgroup.semantic_classes,
+                                          instance_classes=CONF.softgroup.instance_classes,
+                                          ignore_label=CONF.softgroup.ignore_label,
                                           grouping_cfg=CONF.grouping_cfg,
                                           instance_voxel_cfg=CONF.instance_voxel_cfg,
                                           train_cfg=CONF.train_cfg,
                                           test_cfg=CONF.test_cfg,
-                                          fixed_modules=[])
+                                          fixed_modules=CONF.softgroup.fixed_modules)
 
         # --------------------- Relation Module ---------------------
-        self.relation_graph_module = GraphModule(in_size=32,
-                                                 out_size=32,
+        self.relation_graph_module = GraphModule(in_size=CONF.graph_module.in_size,
+                                                 out_size=CONF.graph_module.out_size,
                                                  num_layers=CONF.graph_module.num_graph_steps,
                                                  num_proposals=CONF.graph_module.num_proposals,
-                                                 feat_size=32,
+                                                 feat_size=CONF.graph_module.feat_size,
                                                  num_locals=CONF.graph_module.num_locals,
                                                  query_mode=CONF.graph_module.query_mode,
                                                  graph_mode=CONF.graph_module.graph_mode,
@@ -96,138 +96,25 @@ class CapNetEval(pl.LightningModule):
         # --------------------- Captioning Module ---------------------
         if not self.use_cac:
             if self.use_attention:
-                self.attention_module = AttentionModule(in_size=32, out_size=1, hidden_size=128,
+                self.attention_module = AttentionModule(in_size=CONF.attention_module.in_size,
+                                                        out_size=CONF.attention_module.out_size,
+                                                        hidden_size=CONF.attention_module.hidden_size,
                                                         use_relation=self.use_relation,
                                                         return_orientation=CONF.graph_module.return_orientation)
 
-            self.caption_module = CaptionModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
-                                                hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
-                                                use_relation=self.use_relation, use_attention=self.use_attention)
+            self.caption_module = CaptionModule(self.vocabulary, self.embeddings,
+                                                emb_size=CONF.caption_module.emb_size,
+                                                feat_size=CONF.caption_module.feat_size,
+                                                hidden_size=CONF.caption_module.hidden_size,
+                                                num_proposals=CONF.train_cfg.max_proposal_num,
+                                                use_relation=self.use_relation,
+                                                use_attention=self.use_attention)
         if self.use_cac:
-            self.caption_module = CACModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
-                                            hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
-                                            use_relation=self.use_relation)
-
-    def test_step(self, batch, batch_idx):  # batch size must be 1
-        if self.eval_detection:
-            ret = self.softgroup_module.forward(batch, mode='eval')
-            self.results.append(ret)
-        if self.eval_caption:
-            if batch_idx == 0:
-                self.candidates = {}
-            scan_id = batch['scan_ids'][0]
-            batch = self.softgroup_module.forward(batch, mode='val')
-
-            # graph_module
-            if self.use_relation:import torch
-import torch.nn as nn
-import numpy as np
-import sys
-import os
-import json
-import pickle
-import pytorch_lightning as pl
-import argparse
-import datetime
-from plyfile import PlyData, PlyElement
-
-sys.path.append(os.getcwd())  # HACK add the root folder
-from model.caption_module import CaptionModule
-from model.softgroup import SoftGroup
-from model.relation_graph_module import GraphModule, bbox_pred_module_train, bbox_pred_module_val
-from model.attention_module import AttentionModule
-from model.cac_caption_module import CACModule
-
-from utils.nn_distance import nn_distance
-from utils.box_util import box3d_iou_batch_tensor, get_3d_box_batch
-from utils.val_helper import decode_caption, check_candidates, organize_candidates, prepare_corpus, collect_results_cpu, \
-    save_pred_instances, save_gt_instances
-
-sys.path.append(os.path.join(os.getcwd(), "lib"))  # HACK add the lib folder
-import lib.capeval.bleu.bleu as capblue
-import lib.capeval.cider.cider as capcider
-import lib.capeval.rouge.rouge as caprouge
-import lib.capeval.meteor.meteor as capmeteor
-from lib.dataset import ScannetReferenceDataset, ScannetReferenceTestDataset
-from lib.dataset import get_scanrefer
-from lib.config import CONF
-
-
-
-import glob
-from multiprocessing import Pool
-from eval_det import eval_det
-from visualization import write_bbox
-from datamodule import ScanReferDataModule
-
-from torch.utils.data import DataLoader
-
-vocab_path = os.path.join(CONF.PATH.DATA, "Scanrefer_vocabulary.json")
-GLOVE_PICKLE = os.path.join(CONF.PATH.DATA, "glove.p")
-
-
-class CapNetEval(pl.LightningModule):
-    def __init__(self, use_relation=False, use_attention=False, use_cac=False, eval_detection=False, eval_caption=False, visualization=False, min_iou=0.5):
-        super().__init__()
-        self.n_gts = 0
-        self.n_preds = 0
-        self.results = []  # 用来验证map
-        self.vocabulary = json.load(open(vocab_path))
-        self.embeddings = pickle.load(open(GLOVE_PICKLE, "rb"))
-        self.organized = json.load(open(os.path.join(CONF.PATH.DATA, "scanrefer/ScanRefer_filtered_organized.json")))
-        self.candidates = {}
-        self.corpus = {}
-        self.CLASSES = ('cabinet', 'bed', 'chair', 'sofa', 'table', 'door', 'window', 'bookshelf', 'picture',
-                        'counter', 'desk', 'curtain', 'refrigerator', 'shower curtain', 'toilet', 'sink',
-                        'bathtub', 'otherfurniture')
-        self.nyu_id = (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39)
-        self.eval_detection = eval_detection
-        self.eval_caption = eval_caption
-        self.visualization = visualization
-        self.min_iou = min_iou
-        self.use_relation = use_relation
-        self.use_attention = use_attention
-        self.use_cac = use_cac
-
-        # Define the model
-        # ----------- SoftGroup-based Detection Backbone --------------
-        self.softgroup_module = SoftGroup(in_channels=3,
-                                          channels=32,
-                                          num_blocks=7,
-                                          semantic_classes=20,
-                                          instance_classes=18,
-                                          ignore_label=-100,
-                                          grouping_cfg=CONF.grouping_cfg,
-                                          instance_voxel_cfg=CONF.instance_voxel_cfg,
-                                          train_cfg=CONF.train_cfg,
-                                          test_cfg=CONF.test_cfg,
-                                          fixed_modules=[])
-
-        # --------------------- Relation Module ---------------------
-        self.relation_graph_module = GraphModule(in_size=32,
-                                                 out_size=32,
-                                                 num_layers=CONF.graph_module.num_graph_steps,
-                                                 num_proposals=CONF.graph_module.num_proposals,
-                                                 feat_size=32,
-                                                 num_locals=CONF.graph_module.num_locals,
-                                                 query_mode=CONF.graph_module.query_mode,
-                                                 graph_mode=CONF.graph_module.graph_mode,
-                                                 return_orientation=CONF.graph_module.return_orientation,
-                                                 )
-
-        # --------------------- Captioning Module ---------------------
-        if not self.use_cac:
-            if self.use_attention:
-                self.attention_module = AttentionModule(in_size=32, out_size=1, hidden_size=128,
-                                                        use_relation=self.use_relation,
-                                                        return_orientation=CONF.graph_module.return_orientation)
-
-            self.caption_module = CaptionModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
-                                                hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
-                                                use_relation=self.use_relation, use_attention=self.use_attention)
-        if self.use_cac:
-            self.caption_module = CACModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
-                                            hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
+            self.caption_module = CACModule(self.vocabulary, self.embeddings,
+                                            emb_size=CONF.caption_module.emb_size,
+                                            feat_size=CONF.caption_module.feat_size,
+                                            hidden_size=CONF.caption_module.hidden_size,
+                                            num_proposals=CONF.train_cfg.max_proposal_num,
                                             use_relation=self.use_relation)
 
     def test_step(self, batch, batch_idx):  # batch size must be 1
@@ -352,7 +239,7 @@ class CapNetEval(pl.LightningModule):
                     try:
                         ann_list = list(self.organized[scene_id][object_id].keys())
                         object_name = self.organized[scene_id][object_id][ann_list[0]]["object_name"]
-                        self.candidates[key] = [caption_decoded]  # 所有pred的句子
+                        self.candidates[key] = [caption_decoded]  # all pred captions
                         self.corpus[key] = self.corpus["{}|{}|{}".format(scene_id, object_id, object_name)]
 
                     except KeyError:
@@ -651,7 +538,7 @@ if __name__ == "__main__":
                        min_iou=args.min_iou)
 
     # load model
-    file = '/home/jiachen/DenseCap/scripts/model0625_12:16:49_relation_cac_sc_epoch12.pth'
+    file = '/home/jiachen/DenseCap/scripts/model0625_12:16:49_relation_cac_sc_epoch12.pth'  # TODO: change this for model eval
     model.load_state_dict(torch.load(file), strict=False)
 
     # create trainer

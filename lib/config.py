@@ -38,6 +38,7 @@ CONF.softgroup.num_blocks = 7
 CONF.softgroup.semantic_classes = 20
 CONF.softgroup.instance_classes = 18
 CONF.softgroup.ignore_label = -100
+CONF.softgroup.fixed_modules = ['input_conv', 'unet', 'output_layer']
 
 # voxel_cfg
 CONF.voxel_cfg = EasyDict()
@@ -68,14 +69,6 @@ CONF.instance_voxel_cfg = EasyDict()
 CONF.instance_voxel_cfg.scale = 50
 CONF.instance_voxel_cfg.spatial_shape = 20
 
-# test_cfg
-CONF.test_cfg = EasyDict()
-CONF.test_cfg.min_npoint = 100
-CONF.test_cfg.x4_split = False
-CONF.test_cfg.cls_score_thr = 0.001
-CONF.test_cfg.mask_score_thr = -0.5
-CONF.test_cfg.eval_tasks = ['semantic', 'instance']
-
 # output
 CONF.PATH.OUTPUT = os.path.join(CONF.PATH.BASE, "outputs")
 
@@ -102,3 +95,11 @@ CONF.caption_module = EasyDict()
 CONF.caption_module.emb_size = 300
 CONF.caption_module.feat_size = 32
 CONF.caption_module.hidden_size = 300
+
+# test_cfg
+CONF.test_cfg = EasyDict()
+CONF.test_cfg.min_npoint = 100
+CONF.test_cfg.x4_split = False
+CONF.test_cfg.cls_score_thr = 0.001
+CONF.test_cfg.mask_score_thr = -0.5
+CONF.test_cfg.eval_tasks = ['semantic', 'instance']

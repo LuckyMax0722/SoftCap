@@ -6,8 +6,6 @@ import os
 import json
 import pickle
 import pytorch_lightning as pl
-from torch.utils.tensorboard import SummaryWriter
-from torch.optim.lr_scheduler import StepLR
 
 from model.caption_module import CaptionModule
 from model.softgroup import SoftGroup
@@ -30,8 +28,6 @@ import lib.capeval.cider.cider as capcider
 import lib.capeval.rouge.rouge as caprouge
 import lib.capeval.meteor.meteor as capmeteor
 
-from lib.capeval.bleu.bleu_scorer import BleuScorer
-
 sys.path.append(os.path.join(os.getcwd(), "lib"))  # HACK add the lib folder
 from lib.config import CONF
 
@@ -53,7 +49,7 @@ class CapNet(pl.LightningModule):
         super().__init__()
         self.n_gts = 0
         self.n_preds = 0
-        self.results = []  # 用来验证map
+        self.results = []  # used for eval map
         self.vocabulary = json.load(open(vocab_path))
         self.embeddings = pickle.load(open(GLOVE_PICKLE, "rb"))
         self.organized = json.load(open(os.path.join(CONF.PATH.DATA, "scanrefer/ScanRefer_filtered_organized.json")))
@@ -82,9 +78,7 @@ class CapNet(pl.LightningModule):
                                           instance_voxel_cfg=CONF.instance_voxel_cfg,
                                           train_cfg=CONF.train_cfg,
                                           test_cfg=CONF.test_cfg,
-                                          # fixed_modules=['input_conv', 'unet', 'output_layer', 'semantic_linear',
-                                          #                'offset_linear'],
-                                          fixed_modules=['input_conv', 'unet', 'output_layer']
+                                          fixed_modules=CONF.softgroup.fixed_modules,
                                           )
         # --------------------- Relation Module ---------------------
         self.relation_graph_module = GraphModule(in_size=CONF.graph_module.in_size,
