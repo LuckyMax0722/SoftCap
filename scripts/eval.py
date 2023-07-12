@@ -108,16 +108,127 @@ class CapNetEval(pl.LightningModule):
                                             hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
                                             use_relation=self.use_relation)
 
-        '''
-        self.attention_module = AttentionModule(in_size=32, out_size=1, hidden_size=512, use_relation=self.use_relation,
-                                                return_orientation=CONF.graph_module.return_orientation)
+    def test_step(self, batch, batch_idx):  # batch size must be 1
+        if self.eval_detection:
+            ret = self.softgroup_module.forward(batch, mode='eval')
+            self.results.append(ret)
+        if self.eval_caption:
+            if batch_idx == 0:
+                self.candidates = {}
+            scan_id = batch['scan_ids'][0]
+            batch = self.softgroup_module.forward(batch, mode='val')
 
+            # graph_module
+            if self.use_relation:import torch
+import torch.nn as nn
+import numpy as np
+import sys
+import os
+import json
+import pickle
+import pytorch_lightning as pl
+import argparse
+import datetime
+from plyfile import PlyData, PlyElement
+
+sys.path.append(os.getcwd())  # HACK add the root folder
+from model.caption_module import CaptionModule
+from model.softgroup import SoftGroup
+from model.relation_graph_module import GraphModule, bbox_pred_module_train, bbox_pred_module_val
+from model.attention_module import AttentionModule
+from model.cac_caption_module import CACModule
+
+from utils.nn_distance import nn_distance
+from utils.box_util import box3d_iou_batch_tensor, get_3d_box_batch
+from utils.val_helper import decode_caption, check_candidates, organize_candidates, prepare_corpus, collect_results_cpu, \
+    save_pred_instances, save_gt_instances
+
+sys.path.append(os.path.join(os.getcwd(), "lib"))  # HACK add the lib folder
+import lib.capeval.bleu.bleu as capblue
+import lib.capeval.cider.cider as capcider
+import lib.capeval.rouge.rouge as caprouge
+import lib.capeval.meteor.meteor as capmeteor
+from lib.dataset import ScannetReferenceDataset, ScannetReferenceTestDataset
+from lib.dataset import get_scanrefer
+from lib.config import CONF
+
+
+
+import glob
+from multiprocessing import Pool
+from eval_det import eval_det
+from visualization import write_bbox
+from datamodule import ScanReferDataModule
+
+from torch.utils.data import DataLoader
+
+vocab_path = os.path.join(CONF.PATH.DATA, "Scanrefer_vocabulary.json")
+GLOVE_PICKLE = os.path.join(CONF.PATH.DATA, "glove.p")
+
+
+class CapNetEval(pl.LightningModule):
+    def __init__(self, use_relation=False, use_attention=False, use_cac=False, eval_detection=False, eval_caption=False, visualization=False, min_iou=0.5):
+        super().__init__()
+        self.n_gts = 0
+        self.n_preds = 0
+        self.results = []  # 用来验证map
+        self.vocabulary = json.load(open(vocab_path))
+        self.embeddings = pickle.load(open(GLOVE_PICKLE, "rb"))
+        self.organized = json.load(open(os.path.join(CONF.PATH.DATA, "scanrefer/ScanRefer_filtered_organized.json")))
+        self.candidates = {}
+        self.corpus = {}
+        self.CLASSES = ('cabinet', 'bed', 'chair', 'sofa', 'table', 'door', 'window', 'bookshelf', 'picture',
+                        'counter', 'desk', 'curtain', 'refrigerator', 'shower curtain', 'toilet', 'sink',
+                        'bathtub', 'otherfurniture')
+        self.nyu_id = (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39)
+        self.eval_detection = eval_detection
+        self.eval_caption = eval_caption
+        self.visualization = visualization
+        self.min_iou = min_iou
+        self.use_relation = use_relation
+        self.use_attention = use_attention
+        self.use_cac = use_cac
+
+        # Define the model
+        # ----------- SoftGroup-based Detection Backbone --------------
+        self.softgroup_module = SoftGroup(in_channels=3,
+                                          channels=32,
+                                          num_blocks=7,
+                                          semantic_classes=20,
+                                          instance_classes=18,
+                                          ignore_label=-100,
+                                          grouping_cfg=CONF.grouping_cfg,
+                                          instance_voxel_cfg=CONF.instance_voxel_cfg,
+                                          train_cfg=CONF.train_cfg,
+                                          test_cfg=CONF.test_cfg,
+                                          fixed_modules=[])
+
+        # --------------------- Relation Module ---------------------
+        self.relation_graph_module = GraphModule(in_size=32,
+                                                 out_size=32,
+                                                 num_layers=CONF.graph_module.num_graph_steps,
+                                                 num_proposals=CONF.graph_module.num_proposals,
+                                                 feat_size=32,
+                                                 num_locals=CONF.graph_module.num_locals,
+                                                 query_mode=CONF.graph_module.query_mode,
+                                                 graph_mode=CONF.graph_module.graph_mode,
+                                                 return_orientation=CONF.graph_module.return_orientation,
+                                                 )
 
         # --------------------- Captioning Module ---------------------
-        self.caption_module = CaptionModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
+        if not self.use_cac:
+            if self.use_attention:
+                self.attention_module = AttentionModule(in_size=32, out_size=1, hidden_size=128,
+                                                        use_relation=self.use_relation,
+                                                        return_orientation=CONF.graph_module.return_orientation)
+
+            self.caption_module = CaptionModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
+                                                hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
+                                                use_relation=self.use_relation, use_attention=self.use_attention)
+        if self.use_cac:
+            self.caption_module = CACModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
                                             hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
-                                            use_relation=self.use_relation, use_attention=self.use_attention)
-        '''
+                                            use_relation=self.use_relation)
 
     def test_step(self, batch, batch_idx):  # batch size must be 1
         if self.eval_detection:
@@ -145,9 +256,9 @@ class CapNetEval(pl.LightningModule):
             proposals_idx = batch['proposals_idx']
 
             num_points = batch['coords_float'].shape[0]  # num_point
-            num_instances = cls_scores.size(0)  # proposal的数量
-            cls_scores = cls_scores.softmax(1)  # softmax分类得分
-            max_cls_score, final_cls = cls_scores.max(1)  # M, 1 和 M, 1 每个proposal得到的分类最高分，以及属于哪个类
+            num_instances = cls_scores.size(0)  # #proposal
+            cls_scores = cls_scores.softmax(1)  # softmax scores
+            max_cls_score, final_cls = cls_scores.max(1)  # M, 1 and M, 1 Best score of Each proposal
 
             mask_pred = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
             for instance_idx in range(num_instances):
@@ -158,13 +269,13 @@ class CapNetEval(pl.LightningModule):
                 mask_pred[instance_idx, cur_proposals_idx[:, 1]] = 1
 
             clu_point = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
-            # M , num_point 表示有哪些点被group到这个proposal
+            # M , num_point points belong to proposal
             clu_point[proposals_idx[:, 0].long(), proposals_idx[:, 1].long()] = 1
 
-            final_proposals = clu_point * mask_pred  # M ,num_point 最终结果，最终的proposal中有哪些点
+            final_proposals = clu_point * mask_pred  # M ,num_point points belong to proposal
 
             final_proposals = final_proposals.cpu().numpy()
-            pred_bbox = np.zeros((num_instances, 6))  # M, 6 存储每个proposal的bbox的center和size
+            pred_bbox = np.zeros((num_instances, 6))  # M, 6 proposal bbox center and size
             for i in range(num_instances):
                 idx = (final_proposals[i] == 1)
                 object_points = batch['coords_float'][idx].cpu().numpy()
@@ -184,10 +295,6 @@ class CapNetEval(pl.LightningModule):
 
             _, batch['object_assignment'], _, _ = nn_distance(torch.from_numpy(pred_bbox[:, 0:3]).unsqueeze(0).cuda(),
                                                               batch['center_label'])  # 1, M
-
-            # assign predicted boxes to GTs
-            # assignments = box_assignment(batch['gt_box_corner_label'], pred_box_corner, batch['gt_box_masks'])
-            # batch['object_assignment'] = assignments['per_gt_prop_inds']
 
             # pick out object ids of detected objects
             detected_object_ids = torch.gather(batch["scene_object_ids"], 1, batch["object_assignment"])  # 1, M
@@ -233,7 +340,7 @@ class CapNetEval(pl.LightningModule):
                     except KeyError:
                         continue
 
-            self.n_preds += num_instances  # 记录pred_bbox的总数
+            self.n_preds += num_instances  # #pred_bbox
 
             for prop_id in range(num_instances):
                 scene_id = str(batch['scan_ids'][0])
@@ -251,18 +358,10 @@ class CapNetEval(pl.LightningModule):
                     except KeyError:
                         continue
 
-            # 只可视化good_bbox(iou > threshold)
-            # good_bbox_masks = good_bbox_masks.flatten()
-            # final_proposals = final_proposals[good_bbox_masks.cpu().numpy()]
-            # detected_object_ids = detected_object_ids.flatten()[good_bbox_masks.cpu().numpy()]
-
-            # 可视化所有不属于background的bbox
+            # vis bbox
             final_proposals = final_proposals[valid_bbox_masks.cpu().numpy()]
             detected_object_ids = detected_object_ids.flatten()[valid_bbox_masks.cpu().numpy()]
 
-            # 可视化所有M个bbox(foreground+background)
-            # final_proposals = final_proposals
-            # detected_object_ids = detected_object_ids.flatten()
             if self.visualization:
                 visual(final_proposals, detected_object_ids, scan_id)
 
@@ -398,7 +497,7 @@ class CapNetEval(pl.LightningModule):
             current_time = datetime.datetime.now()
             time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
             with open("/home/jiachen/DenseCap/outputs/captioning_score_eval.txt", "a") as file:
-                file.write('当前时间： ' + time_string + '\n')
+                file.write('Current Time： ' + time_string + '\n')
                 file.write('----Recall_scores----\n')
                 file.write('CIDEr_recall is: {:.15f}\n'.format(cider_recall))
                 file.write('BLEU-4_recall is: {:.15f}\n'.format(bleu_recall))
@@ -438,7 +537,7 @@ class CapNetEval(pl.LightningModule):
             return None
 
 
-def visual(final_proposals, detected_object_ids, scan_id):  # scan2cap论文可视化的是427
+def visual(final_proposals, detected_object_ids, scan_id):
     # write aligned scene ply
     plydata = PlyData.read(os.path.join(CONF.PATH.SCANNET, 'val', scan_id + '_vh_clean_2.ply'))
     num_verts = plydata['vertex'].count
@@ -532,10 +631,9 @@ if __name__ == "__main__":
     parser.add_argument("--use_attention", action="store_true", help="use attention module")
     args = parser.parse_args()
 
-    # debug用
-    args.eval_detection = True
-    args.eval_caption = True
-    args.visualization = False
+    args.eval_detection = True  # eval detection
+    args.eval_caption = True  # eval caption
+    args.visualization = False  # generate vis file
     args.use_relation = True
     args.use_attention = False
     args.use_cac = True
@@ -559,5 +657,5 @@ if __name__ == "__main__":
     # create trainer
     trainer = pl.Trainer(accelerator='gpu', devices=1)
 
-    # 测试验证集上的表现
+    # performance on test set
     trainer.test(model, data)
