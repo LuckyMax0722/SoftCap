@@ -76,11 +76,13 @@ For SoftCap pretrained models, please refer to the following table
 
 ## Training
 ```shell
-python scripts/train.py
+cd scripts
+python train.py
 ```
 
 ## Visualization
 ```shell
-python scripts/eval.py
+cd scripts
+python eval.py
 ```
 
