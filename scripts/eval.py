@@ -262,10 +262,10 @@ class CapNetEval(pl.LightningModule):
 
             mask_pred = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
             for instance_idx in range(num_instances):
-                cur_mask_scores = mask_scores[:, final_cls[instance_idx]]  # N, 1， N个点对第i个proposal的类的mask score
-                mask_inds = cur_mask_scores > -0.5  # threshold 取mask高于阈值的点
+                cur_mask_scores = mask_scores[:, final_cls[instance_idx]]  # N, 1， mask score
+                mask_inds = cur_mask_scores > -0.5  # threshold assign mask to points
                 cur_proposals_idx = proposals_idx[mask_inds].long()
-                # M , num_point 表示有哪些点可能属于这个proposal对应的cls
+                # M , num_point
                 mask_pred[instance_idx, cur_proposals_idx[:, 1]] = 1
 
             clu_point = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
