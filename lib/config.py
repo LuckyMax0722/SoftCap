@@ -43,7 +43,7 @@ and use the pretrained model you got in STAGE 2 with the same structure
 '''
 CONF.model_setting = EasyDict()
 CONF.model_setting.val_tf_on = False
-CONF.model_setting.sc = False
+CONF.model_setting.sc = False  # CIDEr Loss
 CONF.model_setting.use_relation = True
 CONF.model_setting.use_attention = False
 CONF.model_setting.use_cac = True

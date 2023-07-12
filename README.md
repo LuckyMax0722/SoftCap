@@ -96,11 +96,12 @@ Of course, you can also change the relevant configuration for customized trainin
 ### Network Architecture
 You can set the module switches in ``lib/config.py/model setting`` to enable/disable some network modules.
 
-
+### Module parameters
 
 
 ## Visualization
 Before you use the visualization, make sure the project path has been reset (see Section [Training](https://github.com/LuckyMax0722/SoftCap/tree/master#training)).
+Of course, you can also set the visualization parameters in `lib/config.py/vis setting``.
 
 The following code will write point clouds and bounding boxes to .ply file then you can use an visualization 
 application such as [MeshLab](https://www.meshlab.net/) to see the results.
