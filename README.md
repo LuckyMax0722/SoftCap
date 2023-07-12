@@ -96,4 +96,6 @@ python train.py
 cd scripts
 python eval.py
 ```
+``/scripts/eval.py`` will write point clouds and bounding boxes to .ply file then you can use an visualization 
+application such as [MeshLab](https://www.meshlab.net/) to see the results. 
 
