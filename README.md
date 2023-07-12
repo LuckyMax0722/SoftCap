@@ -26,7 +26,7 @@ conda activate softgroup
 
 2. Clone the repository.
 ```
-git clone https://
+git clone https://github.com/LuckyMax0722/SoftCap.git
 ```
 
 
