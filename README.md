@@ -65,7 +65,13 @@ Please refer to [SoftGroup/Data Preparation/ScanNet](https://github.com/thangvub
 and [Scan2Cap/Data Preparation](https://github.com/daveredrum/Scan2Cap/blob/main/README.md#data-preparation)
 
 ## Pretrained Models
-For SoftGroup pretrained models, please refer to [SoftGroup/Pretrained Models](https://github.com/thangvubk/SoftGroup#instance-segmentation)
+For SoftGroup pretrained models, please refer to the following table
+
+|    Model    |                                           Download                                         |
+|:-----------:|:-------------------------------------------------------------------------------------------:|
+| SoftGroup(re-label) | [model](https://drive.google.com/file/d/1hf_ew-7PM7IcPhZnuHF487VmdDfSHZpN/view?usp=drive_link) |
+
+For detail information about SoftGroup, please refer to [SoftGroup/Pretrained Models](https://github.com/thangvubk/SoftGroup#instance-segmentation)
 
 For SoftCap pretrained models, please refer to the following table
 
