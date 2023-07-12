@@ -32,8 +32,8 @@ The following installation guild suppose ``python=3.8`` ``pytorch=1.11`` and ``c
 
 Create a conda virtual environment and activate it.
 ```
-conda create -n softgroup python=3.8
-conda activate softgroup
+conda create -n softcap python=3.8
+conda activate softcap
 ```
 
 2. Clone the repository.
