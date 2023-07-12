@@ -44,11 +44,21 @@ sudo apt-get install libsparsehash-dev
 ```
 
 
-For detail information please refer to [SoftGroup/Installation](https://github.com/thangvubk/SoftGroup/blob/main/docs/installation.md)
+For detail information, please refer to [SoftGroup/Installation](https://github.com/thangvubk/SoftGroup/blob/main/docs/installation.md)
 
 ## Data Preparation
 Please refer to [SoftGroup/Data Preparation/ScanNet](https://github.com/thangvubk/SoftGroup/blob/main/dataset/README.md#scannet-v2-dataset)
 and [Scan2Cap/Data Preparation](https://github.com/daveredrum/Scan2Cap/blob/main/README.md#data-preparation)
+
+## Pretrained Models
+For SoftGroup pretrained models, please refer to [SoftGroup/Pretrained Models](https://github.com/thangvubk/SoftGroup#instance-segmentation)
+
+For SoftGroup pretrained models, please refer to following table
+
+|  Model  | Network Architecture | Loss  |                                           Download                                         |
+|:-------:|:--------------------:|:-----:|:-------------------------------------------------------------------------------------------:|
+| SoftCap | SoftGroup + RG + CAC |  CE   | [model](https://drive.google.com/file/d/1-f7I6-eIma4OilBON928N6mVcYbhiUFP/view?usp=sharing) |
+| SoftCap | SoftGroup + RG + CAC | CIDEr | [model](https://drive.google.com/file/d/1-f7I6-eIma4OilBON928N6mVcYbhiUFP/view?usp=sharing) |
 
 ## Training
 ```shell
