@@ -47,7 +47,8 @@ CONF.model_setting.sc = False  # CIDEr Loss
 CONF.model_setting.use_relation = True
 CONF.model_setting.use_attention = False
 CONF.model_setting.use_cac = True
-
+CONF.model_setting.lr = 0.001  # learning rate
+CONF.model_setting.weight_decay = 1e-5  # weight decay
 # vis setting
 CONF.vis_setting = EasyDict()
 CONF.vis_setting.eval_detection = True  # eval detection

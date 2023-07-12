@@ -458,14 +458,14 @@ class CapNet(pl.LightningModule):
         opt_params.append({'params': self.softgroup_module.parameters(), 'weight_decay': 0})
 
         if self.use_relation:
-            opt_params.append({'params': self.relation_graph_module.parameters(), 'weight_decay': 1e-5})
+            opt_params.append({'params': self.relation_graph_module.parameters(), 'weight_decay': CONF.model_setting.weight_decay})
 
         if (not self.use_cac) and self.use_attention:
-            opt_params.append({'params': self.attention_module.parameters(), 'weight_decay': 1e-5})
+            opt_params.append({'params': self.attention_module.parameters(), 'weight_decay': CONF.model_setting.weight_decay})
 
-        opt_params.append({'params': self.caption_module.parameters(), 'weight_decay': 1e-5})
+        opt_params.append({'params': self.caption_module.parameters(), 'weight_decay': CONF.model_setting.weight_decay})
 
-        optimizer = torch.optim.Adam(opt_params, lr=0.001)
+        optimizer = torch.optim.Adam(opt_params, lr=CONF.model_setting.lr)
 
         return optimizer
 
