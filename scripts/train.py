@@ -36,20 +36,20 @@ and use the pretrained model you got in STAGE 2 with the same structure
 
 model = CapNet(val_tf_on=False, sc=False, use_relation=True, use_attention=False, use_cac=True)
 
-# 加载softgroup_pretrain模型
+# Load SoftGroup_pretrain model
 file = '/home/luk/Downloads/epoch_1.pth'
 model.softgroup_module.load_state_dict(torch.load(file)['net'])
 
-# 加载训练过的模型
+# Load SoftCap ckpt model
 # file = '/home/luk/DenseCap/scripts/model0621_14:06:39_relation_cac_epoch0.pth'
 # model.load_state_dict(torch.load(file), strict=True)
 
-# 创建 ModelCheckpoint 回调
+# ModelCheckpoint
 checkpoint_callback = ModelCheckpoint(
     dirpath='checkpoints',
     filename='test_checkpoint_{epoch}_{step}',
-    save_last=True,  # 保存最后一个检查点
-    every_n_train_steps=1000  # 每隔 1000 个迭代保存一次
+    save_last=True,  # save last ckpt
+    every_n_train_steps=1000  # save each 1000 iterations
 )
 
 # start training
@@ -60,7 +60,7 @@ trainer = pl.Trainer(accelerator='gpu',
                      num_sanity_val_steps=1,
                      callbacks=[checkpoint_callback])
 
-# 从checkpoint恢复训练
+# resume from ckpt
 # trainer = pl.Trainer(accelerator='gpu',
 #                      devices=1,
 #                      max_epochs=-1,
