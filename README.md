@@ -43,10 +43,6 @@ pip install -r requirements.txt
 sudo apt-get install libsparsehash-dev
 ```
 
-5. Setup
-```
-python setup.py build_ext develop
-```
 
 For detail information please refer to [SoftGroup/Installation](https://github.com/thangvubk/SoftGroup/blob/main/docs/installation.md)
 
