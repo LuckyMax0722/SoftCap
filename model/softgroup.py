@@ -164,7 +164,6 @@ class SoftGroup(nn.Module):
             good_clu_masks = torch.zeros(batch_size).bool().cuda()
             select_feat_idx = torch.zeros(batch_size).long().cuda()
 
-
             if ious_on_cluster_mask != None:  # if there are proposals
                 max_iou, argmax_iou = ious_on_cluster_mask[:, instance_id].max(0)
                 select_feats = feats[argmax_iou]
@@ -174,7 +173,6 @@ class SoftGroup(nn.Module):
                     select_feat_idx[i] = max(argmax_iou[i] - torch.sum(proposal_each_scene[:i]), 0)
 
 
-            # 新写的
             object_feats = torch.zeros(batch_size, self.grouping_cfg.max_num_proposal, feats.shape[1]).float().cuda()
             for i in range(batch_size):
                 start = torch.sum(proposal_each_scene[0:i])
@@ -206,9 +204,6 @@ class SoftGroup(nn.Module):
             data_dict["select_feat_idx"] = select_feat_idx
 
         return data_dict
-
-        # return self.parse_losses(losses), select_feats, good_clu_masks, object_feats, object_mask, \
-        #     cls_scores, mask_scores, proposals_idx, proposal_each_scene, select_feat_idx
 
     @cuda_cast
     def forward_scene_test(self, data_dict, batch_idxs, voxel_coords, p2v_map, v2p_map, coords_float, feats,
@@ -278,7 +273,6 @@ class SoftGroup(nn.Module):
         data_dict["proposal_each_scene"] = proposal_each_scene
 
         return data_dict
-        # return obj_feats, object_mask, cls_scores, iou_scores, mask_scores, proposals_idx, proposal_each_scene
 
     def point_wise_loss(self, semantic_scores, pt_offsets, semantic_labels, instance_labels,
                         pt_offset_labels):
@@ -564,12 +558,12 @@ class SoftGroup(nn.Module):
             self.grouping_cfg.class_numpoint_mean, dtype=torch.float32)
         assert class_numpoint_mean.size(0) == self.semantic_classes
 
-        max_proposal = self.grouping_cfg.max_num_proposal  # TODO： max proposal per scene (sample)
+        max_proposal = self.grouping_cfg.max_num_proposal  # max proposal per scene
         for i in range(batch_size):
             start_idx = torch.sum(num_points[0:i])
             end_idx = torch.sum(num_points[0:i + 1])
-            cur_num = 0  # 记录每个sample中当前group了多少proposal
-            GO_NEXT = False  # 跳过当前sample的flag
+            cur_num = 0  # How many proposals is grouped in current sample scene
+            GO_NEXT = False  # flag for skipping current sample
             for class_id in range(self.semantic_classes):
                 if GO_NEXT:
                     continue
@@ -583,7 +577,7 @@ class SoftGroup(nn.Module):
                 coords_ = coords_float[start_idx + object_idxs]
                 pt_offsets_ = pt_offsets[start_idx + object_idxs]
 
-                batch_offsets_ = self.get_batch_offsets(batch_idxs_, batch_size)  # 表明每个batch之间的分界，如[0,40000,80000]
+                batch_offsets_ = self.get_batch_offsets(batch_idxs_, batch_size)
                 neighbor_inds, start_len = ball_query(
                     coords_ + pt_offsets_,
                     batch_idxs_,
@@ -598,7 +592,7 @@ class SoftGroup(nn.Module):
                 # check if having max clusters, if yes, then crop, merge, and go to next sample
                 cur_num = cur_num + (len(proposals_offset) - 1)
                 if cur_num >= max_proposal:
-                    crop_num = (len(proposals_offset) - 1) - (cur_num - max_proposal)  # 只能取前cur_num个proposal
+                    crop_num = (len(proposals_offset) - 1) - (cur_num - max_proposal)  # only first cur_num proposals
                     proposals_offset = proposals_offset[0:crop_num + 1]
                     proposals_idx = proposals_idx[:proposals_offset[-1], :]
                     # set flag to go to next sample
@@ -695,10 +689,10 @@ class SoftGroup(nn.Module):
         if proposals_idx.size(0) == 0:
             return []
 
-        num_instances = cls_scores.size(0)  # proposal的数量
-        num_points = semantic_scores.size(0)  # 点的数量，这里是50000
-        cls_scores = cls_scores.softmax(1)  # softmax分类得分
-        semantic_pred = semantic_scores.max(1)[1]  # 每个点属于的semantic label（0-19）
+        num_instances = cls_scores.size(0)  # proposal number
+        num_points = semantic_scores.size(0)  # point number
+        cls_scores = cls_scores.softmax(1)  # softmax
+        semantic_pred = semantic_scores.max(1)[1]
         cls_pred_list, score_pred_list, mask_pred_list = [], [], []
         for i in range(self.instance_classes):
             if i in self.sem2ins_classes:
@@ -708,15 +702,15 @@ class SoftGroup(nn.Module):
                 if lvl_fusion:
                     mask_pred = mask_pred[:, v2p_map.long()]
             else:
-                cls_pred = cls_scores.new_full((num_instances,), i + 1, dtype=torch.long)  # Mx1，用i+1填充
+                cls_pred = cls_scores.new_full((num_instances,), i + 1, dtype=torch.long)  # Mx1
                 cur_cls_scores = cls_scores[:, i]  # Mx1
                 cur_iou_scores = iou_scores[:, i]  # Mx1
-                cur_mask_scores = mask_scores[:, i]  # Nx1 N为被group出的点总数
-                score_pred = cur_cls_scores * cur_iou_scores.clamp(0, 1)  # 最终得分
-                mask_pred = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # Mx50000
+                cur_mask_scores = mask_scores[:, i]  # Nx1
+                score_pred = cur_cls_scores * cur_iou_scores.clamp(0, 1)  # final score
+                mask_pred = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')
                 mask_inds = cur_mask_scores > self.test_cfg.mask_score_thr
                 cur_proposals_idx = proposals_idx[mask_inds].long()
-                mask_pred[cur_proposals_idx[:, 0], cur_proposals_idx[:, 1]] = 1  # Mx50000，每个proposal的有效点为1
+                mask_pred[cur_proposals_idx[:, 0], cur_proposals_idx[:, 1]] = 1
 
                 # filter low score instance
                 inds = cur_cls_scores > self.test_cfg.cls_score_thr

@@ -406,9 +406,7 @@ class CACModule(nn.Module):
 
         outputs = torch.cat(outputs, dim=1)  # batch_size, num_words - 1/max_len, num_vocabs
         seqLogprobs, _ = F.log_softmax(outputs, dim=2).max(2)
-        seq = outputs.argmax(-1)  # batch_size, num_words - 1/max_len 单词下标
-
-        # print(seq)
+        seq = outputs.argmax(-1)  # batch_size, num_words - 1/max_len
 
         return seq, seqLogprobs
 

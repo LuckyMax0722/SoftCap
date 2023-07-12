@@ -10,8 +10,8 @@ class AttentionModule(nn.Module):
         self.in_size = in_size
         self.out_size = out_size
         self.hidden_size = hidden_size
-        self.encoder_attention = nn.Linear(in_size, hidden_size)  # 32, 512
-        self.full_att = nn.Linear(hidden_size, out_size)  # 512, 1
+        self.encoder_attention = nn.Linear(in_size, hidden_size)
+        self.full_att = nn.Linear(hidden_size, out_size)
         self.use_relation = use_relation
         self.return_orientation = return_orientation
 
@@ -24,7 +24,7 @@ class AttentionModule(nn.Module):
             target_feats = data_dict["select_feats"]  # batch_size, feat_size
             obj_feats = data_dict["object_feats"]  # batch_size, num_proposals, feat_size
 
-        # 用target_feats和obj_feats做attention
+        # doing attention with target_feats and obj_feats
         combined = self.encoder_attention(obj_feats)  # batch_size, num_proposals, hidden_size
         combined += self.encoder_attention(target_feats).unsqueeze(1)  # batch_size, num_proposals, hidden_size
         combined = torch.tanh(combined)

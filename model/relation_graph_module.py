@@ -62,30 +62,23 @@ def bbox_pred_module_train(data_dict):
     proposals_idx = data_dict["proposals_idx"].cuda()
     proposal_each_scene = data_dict["proposal_each_scene"].cuda()
     point_each_scene = data_dict["num_points"].cuda()
-    all_points = data_dict['coords_float'].cuda()  # 获取场景内的所有的point坐标
+    all_points = data_dict['coords_float'].cuda()  # get all point coordinated
 
     for batch_idx in range(data_dict["batch_size"]):
-        num_points = point_each_scene[batch_idx]  # 场景内point的数量
-        num_instances = proposal_each_scene[batch_idx]  # 场景内proposal的数量
+        num_points = point_each_scene[batch_idx]  # num of points in the scene
+        num_instances = proposal_each_scene[batch_idx]  # num of proposals in the scene
 
-        # 每个场景内proposal_idx开始索引和结束索引
+        # proposal_idx start and end for each scene
         proposal_each_scene_idx_start = sum(proposal_each_scene[:batch_idx])
         proposal_each_scene_idx_end = sum(proposal_each_scene[:batch_idx + 1])
 
-        # cls_scores是B个场景内的所有proposal的 --> M, 19
-        # 获取每个batch下场景的softmax分类得分
         cls_scores_each_scene = cls_scores[proposal_each_scene_idx_start:proposal_each_scene_idx_end].softmax(1)
 
-        max_cls_score, final_cls = cls_scores_each_scene.max(1)  # 1, M 和 1, M 每个proposal得到的分类最高分，以及属于哪个类
+        max_cls_score, final_cls = cls_scores_each_scene.max(1)
 
-        # 注意 proposal使用的点比一个场景内的all_points点少
-        # 获取当前场景内第一个proposal的开始点idx
         proposal_each_scene_points_idx_start = (proposals_idx[:, 0] == proposal_each_scene_idx_start).nonzero()
-        # 获取当前场景内最后一个proposal的结束点idx
         proposal_each_scene_points_idx_end = (proposals_idx[:, 0] == proposal_each_scene_idx_end - 1).nonzero()
 
-        # 注意 proposal使用的点比一个场景内的all_points点少
-        # 获取当前场景内proposal的每个点的mask_scored， proposals_idx
         mask_scores_each_scene = mask_scores[
                                  proposal_each_scene_points_idx_start[0]:proposal_each_scene_points_idx_end[-1] + 1]
         proposals_idx_each_scene = proposals_idx[
@@ -93,33 +86,30 @@ def bbox_pred_module_train(data_dict):
 
         mask_pred = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
         for instance_idx in range(num_instances):
-            cur_mask_scores = mask_scores_each_scene[:, final_cls[instance_idx]]  # N, 1， N个点对第i个proposal的类的mask score
-            mask_inds = cur_mask_scores > -0.5  # threshold 取mask高于阈值的点
+            cur_mask_scores = mask_scores_each_scene[:, final_cls[instance_idx]]  # N, 1
+            mask_inds = cur_mask_scores > -0.5  # threshold
             cur_proposals_idx = proposals_idx_each_scene[mask_inds].long()
 
-            # 下面两行用于调整proposal和点的索引, proposal的类别从0开始
             cur_proposals_idx[:, 0] = cur_proposals_idx[:, 0] - cur_proposals_idx[0, 0]
             cur_proposals_idx[:, 1] = cur_proposals_idx[:, 1] - sum(point_each_scene[:batch_idx])
 
-            # M , num_point 表示有哪些点可能属于这个proposal对应的cls
+            # M , num_point
             mask_pred[instance_idx, cur_proposals_idx[:, 1]] = 1
 
         clu_point = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
         cur_proposals_idx_2 = torch.zeros_like(proposals_idx_each_scene, device='cuda')
 
-        # 下面两行用于调整proposal和点的索引, proposal的类别从0开始
         cur_proposals_idx_2[:, 0] = proposals_idx_each_scene[:, 0] - proposals_idx_each_scene[0, 0]
         cur_proposals_idx_2[:, 1] = proposals_idx_each_scene[:, 1] - sum(point_each_scene[:batch_idx])
 
-        # M , num_point 表示有哪些点被group到这个proposal
+        # M , num_point
         clu_point[cur_proposals_idx_2[:, 0].long(), cur_proposals_idx_2[:, 1].long()] = 1
 
-        final_proposals = clu_point * mask_pred  # M ,num_point 最终结果，最终的proposal中有哪些点
+        final_proposals = clu_point * mask_pred  # M ,num_point
 
         final_proposals = final_proposals.cpu().numpy()
-        pred_bbox = np.zeros((num_instances, 6))  # M, 6 存储每个proposal的bbox的center和size
+        pred_bbox = np.zeros((num_instances, 6))  # M, 6 center and size of every proposal bbox
 
-        # 获取当前场景内所有点的位置
         all_points_each_scene = all_points[sum(point_each_scene[:batch_idx]):sum(point_each_scene[:batch_idx + 1])]
         for instance_idx in range(num_instances):
             idx = (final_proposals[instance_idx] == 1)
@@ -139,7 +129,7 @@ def bbox_pred_module_train(data_dict):
         pred_box_corner_each_scene_pad = np.zeros((128, 8, 3))
         pred_box_corner_each_scene = get_3d_box_batch(pred_bbox[:, 3:6], np.zeros(num_instances),
                                                       pred_bbox[:, 0:3])  # M, 8, 3
-        pred_box_corner_each_scene_pad[0:num_instances] = pred_box_corner_each_scene  # 补全 128, 8, 3
+        pred_box_corner_each_scene_pad[0:num_instances] = pred_box_corner_each_scene  # 128, 8, 3
         pred_box_corner_each_scene_pad = torch.from_numpy(pred_box_corner_each_scene_pad).unsqueeze(
             0).cuda()  # 1, 128, 8, 3
 
@@ -170,30 +160,30 @@ def bbox_pred_module_val(data_dict):
     proposals_idx = data_dict["proposals_idx"].cuda()
     proposal_each_scene = data_dict["proposal_each_scene"].cuda()
     point_each_scene = data_dict["num_points"].cuda()
-    all_points = data_dict['coords_float'].cuda()  # 获取场景内的所有的point坐标
-    num_points = data_dict["num_points"].cuda()  # 场景内point的数量
+    all_points = data_dict['coords_float'].cuda()
+    num_points = data_dict["num_points"].cuda()
 
-    num_instances = proposal_each_scene[0]  # proposal的数量
-    cls_scores = cls_scores.softmax(1)  # softmax分类得分
-    max_cls_score, final_cls = cls_scores.max(1)  # M, 1 和 M, 1 每个proposal得到的分类最高分，以及属于哪个类
+    num_instances = proposal_each_scene[0]
+    cls_scores = cls_scores.softmax(1)
+    max_cls_score, final_cls = cls_scores.max(1)
 
     mask_pred = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
     for instance_idx in range(num_instances):
-        cur_mask_scores = mask_scores[:, final_cls[instance_idx]]  # N, 1， N个点对第i个proposal的类的mask score
-        mask_inds = cur_mask_scores > -0.5  # threshold 取mask高于阈值的点
+        cur_mask_scores = mask_scores[:, final_cls[instance_idx]]  # N, 1
+        mask_inds = cur_mask_scores > -0.5  # threshold
         cur_proposals_idx = proposals_idx[mask_inds].long()
 
-        # M , num_point 表示有哪些点可能属于这个proposal对应的cls
+        # M , num_point
         mask_pred[instance_idx, cur_proposals_idx[:, 1]] = 1
 
     clu_point = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
-    # M , num_point 表示有哪些点被group到这个proposal
+    # M , num_point
     clu_point[proposals_idx[:, 0].long(), proposals_idx[:, 1].long()] = 1
 
-    final_proposals = clu_point * mask_pred  # M ,num_point 最终结果，最终的proposal中有哪些点
+    final_proposals = clu_point * mask_pred  # M ,num_point
 
     final_proposals = final_proposals.cpu().numpy()
-    pred_bbox = np.zeros((num_instances, 6))  # M, 6 存储每个proposal的bbox的center和size
+    pred_bbox = np.zeros((num_instances, 6))  # M, 6
 
     for instance_idx in range(num_instances):
         idx = (final_proposals[instance_idx] == 1)
@@ -213,157 +203,41 @@ def bbox_pred_module_val(data_dict):
     pred_box_corner_pad = np.zeros((128, 8, 3))
     pred_box_corner = get_3d_box_batch(pred_bbox[:, 3:6], np.zeros(num_instances),
                                        pred_bbox[:, 0:3])  # M, 8, 3
-    pred_box_corner_pad[0:num_instances] = pred_box_corner  # 补全 128, 8, 3
+    pred_box_corner_pad[0:num_instances] = pred_box_corner  # 128, 8, 3
     pred_box_corner_pad = torch.from_numpy(pred_box_corner_pad).unsqueeze(0).cuda()  # 1, 128, 8, 3
 
     data_dict['bbox_corner'] = pred_box_corner_pad
 
-    # only_for_vis_test(data_dict, pred_box_corner_pad)
-
     return data_dict
-
-
-# def bbox_pred_module(data_dict):
-#     cls_scores = data_dict["cls_scores"]
-#     mask_scores = data_dict["mask_scores"]
-#     proposals_idx = data_dict["proposals_idx"]
-#     proposal_each_scene = data_dict["proposal_each_scene"]
-#     all_points = data_dict['coords_float']  # 获取场景内的所有的point坐标
-#
-#     instance_idx_start = 0
-#     instance_idx_end = proposal_each_scene[0]
-#
-#     proposals_index = proposal_each_scene[0]
-#     proposals_idx = proposals_idx.cuda()
-#
-#     point_idx_start = 0
-#
-#     all_points_idx_start = 0
-#     all_points_idx_end = 0
-#
-#     for i in range(data_dict["batch_size"]):
-#         num_points = data_dict["num_points"][i]  # 场景内point的数量
-#         num_instances = proposal_each_scene[i]  # 场景内proposal的数量
-#
-#         # cls_scores是B个场景内的所有proposal的 --> sum(proposal_each_scene) * 19
-#         cls_scores_each_scene = cls_scores[instance_idx_start:instance_idx_end].softmax(1)  # 获取每个batch下场景的softmax分类得分
-#         # 下方对每个场景的proposal_each_scene进行索引的修改
-#         if i < data_dict["batch_size"] - 1:
-#             instance_idx_start = instance_idx_start + num_instances
-#             instance_idx_end = instance_idx_end + proposal_each_scene[i + 1]
-#
-#         max_cls_score, final_cls = cls_scores_each_scene.max(1)  # M, 1 和 M, 1 每个proposal得到的分类最高分，以及属于哪个类
-#
-#         point_last = (proposals_idx[:, 0] == proposals_index - 1).nonzero()  # 获取当前场景内最后一个proposal的点
-#         point_idx_end = point_last[-1]  # 获取当前场景内最后一个proposal的最后一个点
-#         mask_scores_each_scene = mask_scores[point_idx_start:point_idx_end]
-#         proposals_idx_each_scene = proposals_idx[point_idx_start:point_idx_end]
-#         # 下方对每个场景的mask_scores_each_scene， proposals_idx_each_scene进行索引的修改
-#         if i < data_dict["batch_size"] - 1:
-#             point_idx_start = point_idx_end + 1
-#             proposals_index = proposals_index + proposal_each_scene[i + 1]
-#
-#         mask_pred = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
-#         for j in range(num_instances):
-#             cur_mask_scores = mask_scores_each_scene[:, final_cls[j]]  # N, 1， N个点对第i个proposal的类的mask score
-#             mask_inds = cur_mask_scores > -0.5  # threshold 取mask高于阈值的点
-#             cur_proposals_idx = proposals_idx_each_scene[mask_inds].long()
-#             # 下面两行用于调整proposal和点的索引
-#             cur_proposals_idx[:, 0] = cur_proposals_idx[:, 0] - cur_proposals_idx[0, 0]
-#             cur_proposals_idx[:, 1] = cur_proposals_idx[:, 1] - proposals_idx_each_scene[0][1]
-#             # M , num_point 表示有哪些点可能属于这个proposal对应的cls
-#             mask_pred[cur_proposals_idx[:, 0], cur_proposals_idx[:, 1]] = 1
-#
-#         clu_point = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
-#         for j in range(num_instances):
-#             # 调整索引
-#             proposals_idx_each_scene[:, 0] = proposals_idx_each_scene[:, 0] - proposals_idx_each_scene[0, 0]
-#             proposals_idx_each_scene[:, 1] = proposals_idx_each_scene[:, 1] - proposals_idx_each_scene[0, 1]
-#             # M , num_point 表示有哪些点被group到这个proposal
-#             clu_point[proposals_idx_each_scene[:, 0].long(), proposals_idx_each_scene[:, 1].long()] = 1
-#
-#         final_proposals = clu_point * mask_pred  # M ,num_point 最终结果，最终的proposal中有哪些点
-#
-#         final_proposals = final_proposals.cpu().numpy()
-#         pred_bbox = np.zeros((num_instances, 6))  # M, 6 存储每个proposal的bbox的center和size
-#
-#         all_points_idx_end = all_points_idx_end + num_points
-#         all_points_each_scene = all_points[all_points_idx_start:all_points_idx_end]
-#         all_points_idx_start = all_points_idx_start + num_points
-#
-#         for j in range(num_instances):
-#             idx = (final_proposals[j] == 1)
-#             object_points = all_points_each_scene[idx].cpu().numpy()
-#
-#             if object_points.shape[0] != 0:
-#                 max_corner = object_points.max(0)
-#                 min_corner = object_points.min(0)
-#             else:
-#                 max_corner = np.zeros(3)
-#                 min_corner = np.zeros(3)
-#             center = (max_corner + min_corner) / 2
-#             size = abs(max_corner - min_corner)
-#             pred_bbox[j, 0:3] = center
-#             pred_bbox[j, 3:6] = size
-#
-#         pred_box_corner_each_scene = get_3d_box_batch(pred_bbox[:, 3:6], np.zeros(num_instances),
-#                                                       pred_bbox[:, 0:3])  # M, 8, 3
-#         pred_box_corner_each_scene_pad = np.zeros((128, 8, 3))
-#
-#         pred_box_corner_each_scene_pad[0:pred_box_corner_each_scene.shape[0]] = pred_box_corner_each_scene  # 补全
-#
-#         pred_box_corner_each_scene_pad = torch.from_numpy(pred_box_corner_each_scene_pad).unsqueeze(
-#             0).cuda()  # 1, 128, 8, 3
-#
-#         pred_center_each_scene_pad = np.zeros((128, 3))
-#
-#         pred_center_each_scene_pad[0:pred_box_corner_each_scene.shape[0]] = pred_bbox[:, 0:3]
-#
-#         pred_center_each_scene_pad = torch.from_numpy(pred_center_each_scene_pad).unsqueeze(
-#             0).cuda()
-#
-#         if i == 0:
-#             pred_box_corner = pred_box_corner_each_scene_pad.clone()
-#             pred_box_center = pred_center_each_scene_pad.clone()
-#         else:
-#             pred_box_corner = torch.cat((pred_box_corner, pred_box_corner_each_scene_pad), dim=0)
-#             pred_box_center = torch.cat((pred_box_center, pred_center_each_scene_pad), dim=0)
-#
-#     # only_for_vis_test(data_dict, pred_box_corner)
-#
-#     data_dict['bbox_corner'] = pred_box_corner
-#     data_dict['bbox_center'] = pred_box_center
-#     return data_dict
-
 
 def bbox_pred_module_test(data_dict):
     cls_scores = data_dict["cls_scores"]
     mask_scores = data_dict["mask_scores"]
     proposals_idx = data_dict["proposals_idx"]
     proposal_each_scene = data_dict["proposal_each_scene"]
-    all_points = data_dict['coords_float']  # 获取场景内的所有的point坐标
+    all_points = data_dict['coords_float']
 
-    num_points = data_dict["num_points"]  # 场景内point的数量
-    num_instances = cls_scores.size(0)  # proposal的数量
-    cls_scores = cls_scores.softmax(1)  # softmax分类得分
-    max_cls_score, final_cls = cls_scores.max(1)  # M, 1 和 M, 1 每个proposal得到的分类最高分，以及属于哪个类
+    num_points = data_dict["num_points"]
+    num_instances = cls_scores.size(0)
+    cls_scores = cls_scores.softmax(1)
+    max_cls_score, final_cls = cls_scores.max(1)  # M, 1 和 M, 1
 
     mask_pred = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
     for i in range(num_instances):
-        cur_mask_scores = mask_scores[:, final_cls[i]]  # N, 1， N个点对第i个proposal的类的mask score
-        mask_inds = cur_mask_scores > -0.5  # threshold 取mask高于阈值的点
+        cur_mask_scores = mask_scores[:, final_cls[i]]  # N, 1
+        mask_inds = cur_mask_scores > -0.5  # threshold
         cur_proposals_idx = proposals_idx[mask_inds].long()
         mask_pred[
-            cur_proposals_idx[:, 0], cur_proposals_idx[:, 1]] = 1  # M , num_point 表示有哪些点可能属于这个proposal对应的cls
+            cur_proposals_idx[:, 0], cur_proposals_idx[:, 1]] = 1  # M , num_point
 
     clu_point = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
     for i in range(num_instances):
         clu_point[
-            proposals_idx[:, 0].long(), proposals_idx[:, 1].long()] = 1  # M , num_point 表示有哪些点被group到这个proposal
-    final_proposals = clu_point * mask_pred  # M ,num_point 最终结果，最终的proposal中有哪些点
+            proposals_idx[:, 0].long(), proposals_idx[:, 1].long()] = 1  # M , num_point
+    final_proposals = clu_point * mask_pred  # M ,num_point
 
     final_proposals = final_proposals.cpu().numpy()
-    pred_bbox = np.zeros((num_instances, 6))  # M, 6 存储每个proposal的bbox的center和size
+    pred_bbox = np.zeros((num_instances, 6))  # M, 6
     for i in range(num_instances):
         idx = (final_proposals[i] == 1)
         object_points = data_dict['coords_float'][idx].cpu().numpy()
@@ -380,7 +254,7 @@ def bbox_pred_module_test(data_dict):
 
     pred_box_corner = get_3d_box_batch(pred_bbox[:, 3:6], np.zeros(num_instances), pred_bbox[:, 0:3])  # M, 8, 3
     pred_box_corner_pad = np.zeros((128, 8, 3))
-    pred_box_corner_pad[0:pred_box_corner.shape[0]] = pred_box_corner  # 补全
+    pred_box_corner_pad[0:pred_box_corner.shape[0]] = pred_box_corner
     pred_box_corner_pad = torch.from_numpy(pred_box_corner_pad).unsqueeze(0).cuda()  # 1, 128, 8, 3
 
     data_dict['bbox_corner'] = pred_box_corner_pad
@@ -403,8 +277,8 @@ class EdgeConv(MessagePassing):
         #     nn.Linear(out_size, out_size),
         #     nn.ReLU()
         # )
-        self.__explain__ = False  # 解释说明标志，默认为 False
-        self.__edge_mask__ = None  # 边掩码，默认为 None
+        self.__explain__ = False
+        self.__edge_mask__ = None
 
     def forward(self, x, edge_index):
         # x has shape [N, in_size]
@@ -732,8 +606,6 @@ class GraphModule(nn.Module):
         data_dict["edge_distances"] = edge_preds[:, :, -1]
         data_dict["enhanced_feats"] = enhanced_feats
         data_dict["valid_mask"] = valid_mask
-        # print(valid_mask)
-        # print(object_masks)
         if self.return_orientation:
             rel_obj_feats = self._add_relation_feat(data_dict, new_obj_feats,
                                                     select_feat_idx)  # batch_size, num_proposals, feat_size

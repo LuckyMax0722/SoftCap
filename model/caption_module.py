@@ -47,7 +47,6 @@ class CaptionModule(nn.Module):
             hidden_size=hidden_size
         )
 
-        # 输出分类层
         self.classifier = nn.Linear(hidden_size, self.num_vocabs)
 
     def step(self, step_input, hidden):
