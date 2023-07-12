@@ -86,16 +86,29 @@ For SoftCap pretrained models, please refer to the following table
 | SoftCap | SoftGroup + RG + CAC | CIDEr | [model](https://drive.google.com/file/d/1uf9jKmRVX1WIbvAlPAisp9ALao3hdRnB/view?usp=drive_link) |
 
 ## Training
+You can use the following code to train SoftCap based on the default configuration. However, before you do that, you 
+must set the project path in ``lib/config.py``.
 ```shell
 cd scripts
 python train.py
 ```
+Of course, you can also change the relevant configuration for customized training.
+### Network Architecture
+You can set the module switches in ``lib/config.py/model setting`` to enable/disable some network modules.
+
+
+
 
 ## Visualization
+Before you use the visualization, make sure the project path has been reset (see Section [Training]).
+
+The following code will write point clouds and bounding boxes to .ply file then you can use an visualization 
+application such as [MeshLab](https://www.meshlab.net/) to see the results.
 ```shell
 cd scripts
 python eval.py
 ```
-``/scripts/eval.py`` will write point clouds and bounding boxes to .ply file then you can use an visualization 
-application such as [MeshLab](https://www.meshlab.net/) to see the results. 
+
+
+
 

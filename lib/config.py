@@ -15,8 +15,8 @@ CONF.PATH.UTILS = os.path.join(CONF.PATH.BASE, "utils")
 CONF.PATH.PRETRAIN = '/home/luk/DenseCap/softgroup.pth'  # TODO: change this
 CONF.PATH.EVAL = '/home/luk/DenseCap/eval_model.pth'  # TODO: change this
 CONF.PATH.OUTPUT = os.path.join(CONF.PATH.BASE, "outputs")
-# model setting
 
+# model setting
 '''
 STAGE 1:
 pretrain the SoftGroup model (already done)
@@ -41,7 +41,6 @@ STAGE 3:
 when using reinforcement learning, setting use_sc = True, others remain the same
 and use the pretrained model you got in STAGE 2 with the same structure
 '''
-
 CONF.model_setting = EasyDict()
 CONF.model_setting.val_tf_on = False
 CONF.model_setting.sc = False
