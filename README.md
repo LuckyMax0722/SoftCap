@@ -96,8 +96,9 @@ Of course, you can also change the relevant configuration for customized trainin
 ### Network Architecture
 You can set the module switches in ``lib/config.py/model setting`` to enable/disable some network modules.
 
-### Module parameters
-
+### Other hyperparameters
+For other hyperparameters, such as the number of layers in the graph relations module, the learning rate, etc., you can 
+always play them in ``lib/config.py/model setting``.
 
 ## Visualization
 Before you use the visualization, make sure the project path has been reset (see Section [Training](https://github.com/LuckyMax0722/SoftCap/tree/master#training)).
