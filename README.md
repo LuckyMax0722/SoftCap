@@ -58,6 +58,9 @@ sudo apt-get install libsparsehash-dev
 
 For detail information, please refer to [SoftGroup/Installation](https://github.com/thangvubk/SoftGroup/blob/main/docs/installation.md)
 
+Please pay attention that we process the setup based on python 3.8 and CUDA 11.3.
+You can follow SoftGroup installation to build the setup and then replace our ``/ops`` folder with yours.
+
 ## Data Preparation
 [SoftCap/Data Preparation](data/README.md)
 
@@ -65,7 +68,7 @@ Please refer to [SoftGroup/Data Preparation/ScanNet](https://github.com/thangvub
 and [Scan2Cap/Data Preparation](https://github.com/daveredrum/Scan2Cap/blob/main/README.md#data-preparation)
 
 ## Pretrained Models
-For SoftGroup pretrained models, please refer to the following table
+For SoftGroup pretrained models, please refer to the following table. Be aware that we do a re-labeling process before pretrain because the labeling in SoftGroup is not adapt to ScanRefer Dataset.
 
 |    Model    |                                           Download                                         |
 |:-----------:|:-------------------------------------------------------------------------------------------:|
