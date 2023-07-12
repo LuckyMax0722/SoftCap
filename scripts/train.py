@@ -16,6 +16,10 @@ model = CapNet(CONF.model_setting.val_tf_on, CONF.model_setting.sc, CONF.model_s
 file = CONF.PATH.PRETRAIN
 model.softgroup_module.load_state_dict(torch.load(file)['net'])
 
+# Load pretrained model
+# file = '/home/luk/DenseCap/scripts/...pth'
+# model.load_state_dict(torch.load(file), strict=True)
+
 # ModelCheckpoint
 checkpoint_callback = ModelCheckpoint(
     dirpath='checkpoints',
