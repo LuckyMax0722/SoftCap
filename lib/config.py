@@ -13,6 +13,47 @@ CONF.PATH.LIB = os.path.join(CONF.PATH.BASE, "lib")
 # CONF.PATH.MODELS = os.path.join(CONF.PATH.BASE, "models")
 CONF.PATH.UTILS = os.path.join(CONF.PATH.BASE, "utils")
 
+# model setting
+
+'''
+STAGE 1:
+pretrain the SoftGroup model (already done)
+
+STAGE 2:
+SoftGroup + GRU
+use_relation = False, use_attention = False, use_cac = False
+
+SoftGroup + relation + GRU
+use_relation = True, use_attention = False, use_cac = False
+
+SoftGroup + relation + Att2GRU
+use_relation = True, use_attention = True, use_cac = False
+
+SoftGroup + CAC
+use_relation = False, use_attention = False, use_cac = True
+
+SoftGroup + relation + CAC
+use_relation = True, use_attention = False, use_cac = True
+
+STAGE 3: 
+when using reinforcement learning, setting use_sc = True, others remain the same
+and use the pretrained model you got in STAGE 2 with the same structure
+'''
+
+CONF.model_setting = EasyDict()
+CONF.model_setting.val_tf_on = False
+CONF.model_setting.sc = False
+CONF.model_setting.use_relation = False
+CONF.model_setting.use_attention = False
+CONF.model_setting.use_cac = False
+
+# vis setting
+CONF.vis_setting = EasyDict()
+CONF.vis_setting.eval_detection = True  # eval detection
+CONF.vis_setting.eval_caption = True  # eval caption
+CONF.vis_setting.visualization = True  # generate vis file
+CONF.vis_setting.min_iou = 0.5  # set IoU
+
 # scannet data
 CONF.PATH.SCANNET_SCANS = os.path.join(CONF.PATH.SCANNET, "scans")
 CONF.PATH.SCANNET_META = os.path.join(CONF.PATH.SCANNET, "meta_data")
@@ -103,3 +144,6 @@ CONF.test_cfg.x4_split = False
 CONF.test_cfg.cls_score_thr = 0.001
 CONF.test_cfg.mask_score_thr = -0.5
 CONF.test_cfg.eval_tasks = ['semantic', 'instance']
+
+
+

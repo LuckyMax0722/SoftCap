@@ -508,34 +508,17 @@ class ScanReferEvalModule(pl.LightningDataModule):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--folder", type=str, help="Folder containing the model")
-    parser.add_argument("--min_iou", type=float, default=0.25, help="Min IoU threshold for evaluation")
-    parser.add_argument("--eval_detection", action="store_true", help="Evaluate the object detection performance.")
-    parser.add_argument("--eval_caption", action="store_true", help="Evaluate the caption performance.")
-    parser.add_argument("--visualization", action="store_true", help="Visualize the bbox in the scene.")
-    parser.add_argument("--use_relation", action="store_true", help="use relational graph module.")
-    parser.add_argument("--use_attention", action="store_true", help="use attention module")
-    args = parser.parse_args()
-
-    args.eval_detection = True  # eval detection
-    args.eval_caption = True  # eval caption
-    args.visualization = False  # generate vis file
-    args.use_relation = True
-    args.use_attention = False
-    args.use_cac = True
-
     # prepare dataset and dataloader
     data = ScanReferEvalModule()
 
     # create model
-    model = CapNetEval(use_relation=args.use_relation,
-                       use_attention=args.use_attention,
-                       use_cac=args.use_cac,
-                       eval_detection=args.eval_detection,
-                       eval_caption=args.eval_caption,
-                       visualization=args.visualization,
-                       min_iou=args.min_iou)
+    model = CapNetEval(use_relation=CONF.model_setting.use_relation,
+                       use_attention=CONF.model_setting.use_attention,
+                       use_cac=CONF.model_setting.use_cac,
+                       eval_detection=CONF.vis_setting.eval_detection,
+                       eval_caption=CONF.vis_setting.eval_caption,
+                       visualization=CONF.vis_setting.visualization,
+                       min_iou=CONF.vis_setting.min_iou)
 
     # load model
     file = '/home/jiachen/DenseCap/scripts/model0625_12:16:49_relation_cac_sc_epoch12.pth'  # TODO: change this for model eval

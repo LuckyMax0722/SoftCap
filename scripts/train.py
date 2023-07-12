@@ -4,37 +4,13 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 from datamodule import ScanReferDataModule
 from capnet import CapNet
+from lib.config import CONF
 
 # prepare dataset and dataloader
 data = ScanReferDataModule()
 
-# create model
-'''
-STAGE 1:
-pretrain the SoftGroup model (already done)
-
-STAGE 2:
-SoftGroup + GRU
-use_relation = False, use_attention = False, use_cac = False
-
-SoftGroup + relation + GRU
-use_relation = True, use_attention = False, use_cac = False
-
-SoftGroup + relation + Att2GRU
-use_relation = True, use_attention = True, use_cac = False
-
-SoftGroup + CAC
-use_relation = False, use_attention = False, use_cac = True
-
-SoftGroup + relation + CAC
-use_relation = True, use_attention = False, use_cac = True
-
-STAGE 3: 
-when using reinforcement learning, setting use_sc = True, others remain the same
-and use the pretrained model you got in STAGE 2 with the same structure
-'''
-
-model = CapNet(val_tf_on=False, sc=False, use_relation=True, use_attention=False, use_cac=True)
+model = CapNet(CONF.model_setting.val_tf_on, CONF.model_setting.sc, CONF.model_setting.use_relation,
+               CONF.model_setting.use_attention, CONF.model_setting.use_cac)
 
 # Load SoftGroup_pretrain model
 file = '/home/luk/Downloads/epoch_1.pth'
