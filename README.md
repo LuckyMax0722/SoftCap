@@ -62,9 +62,9 @@ Please pay attention that we process the setup based on python 3.8 and CUDA 11.3
 You can follow SoftGroup installation to build the setup and then replace our ``/ops`` folder with yours.
 
 ## Data Preparation
-[SoftCap/Data Preparation](data/README.md)
+For data preparation, please refer to [SoftCap/Data Preparation](data/README.md).
 
-Please refer to [SoftGroup/Data Preparation/ScanNet](https://github.com/thangvubk/SoftGroup/blob/main/dataset/README.md#scannet-v2-dataset)
+For more details about ScanNet, ScanRefer and Scan2CAD, you can also refer to [SoftGroup/Data Preparation/ScanNet](https://github.com/thangvubk/SoftGroup/blob/main/dataset/README.md#scannet-v2-dataset)
 and [Scan2Cap/Data Preparation](https://github.com/daveredrum/Scan2Cap/blob/main/README.md#data-preparation)
 
 ## Pretrained Models

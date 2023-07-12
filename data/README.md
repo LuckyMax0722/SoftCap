@@ -41,4 +41,4 @@ SoftCap
 ```
 
 ## glove:
-Download the preprocessed [GLoVE embeddings (~990MB)](http://kaldir.vc.in.tum.de/glove.p) and put them under data/.
+Download the preprocessed [GLoVE embeddings (~990MB)](http://kaldir.vc.in.tum.de/glove.p) and put them under ``data/``.
