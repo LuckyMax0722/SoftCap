@@ -100,7 +100,7 @@ You can set the module switches in ``lib/config.py/model setting`` to enable/dis
 
 
 ## Visualization
-Before you use the visualization, make sure the project path has been reset (see Section [Training]).
+Before you use the visualization, make sure the project path has been reset (see Section [Training](https://github.com/LuckyMax0722/SoftCap/tree/master#training)).
 
 The following code will write point clouds and bounding boxes to .ply file then you can use an visualization 
 application such as [MeshLab](https://www.meshlab.net/) to see the results.
