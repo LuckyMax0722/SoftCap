@@ -13,12 +13,8 @@ model = CapNet(CONF.model_setting.val_tf_on, CONF.model_setting.sc, CONF.model_s
                CONF.model_setting.use_attention, CONF.model_setting.use_cac)
 
 # Load SoftGroup_pretrain model
-file = '/home/luk/Downloads/epoch_1.pth'
+file = CONF.PATH.PRETRAIN
 model.softgroup_module.load_state_dict(torch.load(file)['net'])
-
-# Load SoftCap ckpt model
-# file = '/home/luk/DenseCap/scripts/model0621_14:06:39_relation_cac_epoch0.pth'
-# model.load_state_dict(torch.load(file), strict=True)
 
 # ModelCheckpoint
 checkpoint_callback = ModelCheckpoint(

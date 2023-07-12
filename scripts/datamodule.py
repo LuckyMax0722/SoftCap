@@ -34,7 +34,6 @@ class ScanReferDataModule(pl.LightningDataModule):
             scanrefer=self.Scanrefer_train,
             scanrefer_all_scene=self.all_scene_list,
             split='train',
-            num_points=50000,
             augment=True,
             scan2cad_rotation=SCAN2CAD_ROTATION,
         )
@@ -42,7 +41,6 @@ class ScanReferDataModule(pl.LightningDataModule):
             scanrefer=self.Scanrefer_eval_val,
             scanrefer_all_scene=self.all_scene_list,
             split='val',
-            num_points=40000,
             augment=False,
         )
 

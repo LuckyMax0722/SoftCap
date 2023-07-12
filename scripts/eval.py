@@ -498,7 +498,6 @@ class ScanReferEvalModule(pl.LightningDataModule):
             scanrefer=self.Scanrefer_eval_val,
             scanrefer_all_scene=self.all_scene_list,
             split='val',
-            num_points=40000,
             augment=False,
         )
 
@@ -521,7 +520,7 @@ if __name__ == "__main__":
                        min_iou=CONF.vis_setting.min_iou)
 
     # load model
-    file = '/home/jiachen/DenseCap/scripts/model0625_12:16:49_relation_cac_sc_epoch12.pth'  # TODO: change this for model eval
+    file = CONF.PATH.EVAL
     model.load_state_dict(torch.load(file), strict=False)
 
     # create trainer

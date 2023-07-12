@@ -12,7 +12,8 @@ CONF.PATH.SCANNET = os.path.join(CONF.PATH.DATA, "scannet")
 CONF.PATH.LIB = os.path.join(CONF.PATH.BASE, "lib")
 # CONF.PATH.MODELS = os.path.join(CONF.PATH.BASE, "models")
 CONF.PATH.UTILS = os.path.join(CONF.PATH.BASE, "utils")
-
+CONF.PATH.PRETRAIN = '/home/luk/DenseCap/softgroup.pth'  # TODO: change this
+CONF.PATH.EVAL = '/home/luk/DenseCap/eval_model.pth'  # TODO: change this
 # model setting
 
 '''
@@ -43,9 +44,9 @@ and use the pretrained model you got in STAGE 2 with the same structure
 CONF.model_setting = EasyDict()
 CONF.model_setting.val_tf_on = False
 CONF.model_setting.sc = False
-CONF.model_setting.use_relation = False
+CONF.model_setting.use_relation = True
 CONF.model_setting.use_attention = False
-CONF.model_setting.use_cac = False
+CONF.model_setting.use_cac = True
 
 # vis setting
 CONF.vis_setting = EasyDict()
@@ -144,6 +145,3 @@ CONF.test_cfg.x4_split = False
 CONF.test_cfg.cls_score_thr = 0.001
 CONF.test_cfg.mask_score_thr = -0.5
 CONF.test_cfg.eval_tasks = ['semantic', 'instance']
-
-
-

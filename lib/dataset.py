@@ -341,7 +341,6 @@ class ScannetReferenceDataset(ReferenceDataset):
 
     def __init__(self, scanrefer, scanrefer_all_scene,
                  split="train",
-                 num_points=40000,
                  augment=False,
                  voxel_cfg=CONF.voxel_cfg,
                  scan2cad_rotation=json.load(open(os.path.join(CONF.PATH.SCAN2CAD, "scannet_instance_rotations.json")))):
@@ -351,7 +350,6 @@ class ScannetReferenceDataset(ReferenceDataset):
         self.scanrefer = scanrefer
         self.scanrefer_all_scene = scanrefer_all_scene  # all scene_ids in scanrefer
         self.split = split
-        self.num_points = num_points
         self.augment = augment
         self.voxel_cfg = voxel_cfg
         self.scan2cad_rotation = scan2cad_rotation
