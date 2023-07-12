@@ -13,12 +13,12 @@ outperforms the existing baseline method with a significant improvement.
 Quantitative results of 3D dense captioning on ScanRefer. All metrics are thresholded by IoU 0.5. Our method outperforms 
 all baselines with a remarkable margin.
 
-| Method      | Detection | CIDEr | BLEU-4 | METEOR | ROUGE | Detection<br/>mAP |
-|:------------|:---------|:------:|:------:|:------:|:-----:|:-------------------:|
-| Scan2Cap    |  VoteNet  | 15.71 |  9.01  |  7.18  | 14.92 | 32.09             |
-| X-Trans2Cap |  VoteNet  | 17.64 |  9.68  |  7.21  | 15.25 | 35.31             |
-| More        |  VoteNet  | 16.46 |  8.86  |  7.12  | 14.71 | 31.93             |
-| Ours(CE)    | SoftGroup | 30.76 | 16.30  | **13.83**  | 28.41 | 57.22             |
+| Method      | Detection |   CIDEr   | BLEU-4 | METEOR | ROUGE | Detection<br/>mAP |
+|:------------|:---------|:---------:|:------:|:------:|:-----:|:-------------------:|
+| Scan2Cap    |  VoteNet  |   15.71   |  9.01  |  7.18  | 14.92 | 32.09             |
+| X-Trans2Cap |  VoteNet  |   17.64   |  9.68  |  7.21  | 15.25 | 35.31             |
+| More        |  VoteNet  |   16.46   |  8.86  |  7.12  | 14.71 | 31.93             |
+| Ours(CE)    | SoftGroup |   30.76   | 16.30  | **13.83**  | 28.41 | 57.22             |
 | **Ours(CIDEr)** |        **SoftGroup**   | **36.27** | **18.66**  | 13.82  | **29.13** | **57.38**             |
 
 ## Installation
@@ -59,6 +59,8 @@ sudo apt-get install libsparsehash-dev
 For detail information, please refer to [SoftGroup/Installation](https://github.com/thangvubk/SoftGroup/blob/main/docs/installation.md)
 
 ## Data Preparation
+[SoftCap/Data Preparation](data/README.md)
+
 Please refer to [SoftGroup/Data Preparation/ScanNet](https://github.com/thangvubk/SoftGroup/blob/main/dataset/README.md#scannet-v2-dataset)
 and [Scan2Cap/Data Preparation](https://github.com/daveredrum/Scan2Cap/blob/main/README.md#data-preparation)
 
