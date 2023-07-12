@@ -30,6 +30,15 @@ CONF.TRAIN.MAX_DES_LEN = 30
 CONF.TRAIN.MIN_IOU_THRESHOLD = 0
 CONF.TRAIN.OVERLAID_THRESHOLD = 0.5
 
+# softgroup conofig
+CONF.softgroup = EasyDict()
+CONF.softgroup.in_channels = 3
+CONF.softgroup.channels = 32
+CONF.softgroup.num_blocks = 7
+CONF.softgroup.semantic_classes = 20
+CONF.softgroup.instance_classes = 18
+CONF.softgroup.ignore_label = -100
+
 # voxel_cfg
 CONF.voxel_cfg = EasyDict()
 CONF.voxel_cfg.scale = 50
@@ -79,4 +88,3 @@ CONF.graph_module.num_locals = 10  # 取最近几个proposal
 CONF.graph_module.query_mode = 'corner'  # ['corner', 'center']
 CONF.graph_module.graph_mode = 'edge_conv'  # ['graph_conv', 'edge_conv']
 CONF.graph_module.return_orientation = True
-

@@ -72,12 +72,12 @@ class CapNet(pl.LightningModule):
         # Define the model
         # -------------------------------------------------------------
         # ----------- SoftGroup-based Detection Backbone --------------
-        self.softgroup_module = SoftGroup(in_channels=3,
-                                          channels=32,
-                                          num_blocks=7,
-                                          semantic_classes=20,
-                                          instance_classes=18,
-                                          ignore_label=-100,
+        self.softgroup_module = SoftGroup(in_channels=CONF.softgroup.in_channels,
+                                          channels=CONF.softgroup.channels,
+                                          num_blocks=CONF.softgroup.num_blocks,
+                                          semantic_classes=CONF.softgroup.semantic_classes,
+                                          instance_classes=CONF.softgroup.instance_classes,
+                                          ignore_label=CONF.softgroup.ignore_label,
                                           grouping_cfg=CONF.grouping_cfg,
                                           instance_voxel_cfg=CONF.instance_voxel_cfg,
                                           train_cfg=CONF.train_cfg,
@@ -352,7 +352,7 @@ class CapNet(pl.LightningModule):
         return None
 
     def on_validation_start(self) -> None:
-        self.filename = 'model0621_'
+        self.filename = 'model'
         current_time = datetime.datetime.now()
         time_string = current_time.strftime("%H:%M:%S")
         self.filename += time_string
