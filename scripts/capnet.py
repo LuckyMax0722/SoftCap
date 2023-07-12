@@ -87,11 +87,11 @@ class CapNet(pl.LightningModule):
                                           fixed_modules=['input_conv', 'unet', 'output_layer']
                                           )
         # --------------------- Relation Module ---------------------
-        self.relation_graph_module = GraphModule(in_size=32,
-                                                 out_size=32,
+        self.relation_graph_module = GraphModule(in_size=CONF.graph_module.in_size,
+                                                 out_size=CONF.graph_module.out_size,
                                                  num_layers=CONF.graph_module.num_graph_steps,
                                                  num_proposals=CONF.graph_module.num_proposals,
-                                                 feat_size=32,
+                                                 feat_size=CONF.graph_module.feat_size,
                                                  num_locals=CONF.graph_module.num_locals,
                                                  query_mode=CONF.graph_module.query_mode,
                                                  graph_mode=CONF.graph_module.graph_mode,
@@ -101,16 +101,25 @@ class CapNet(pl.LightningModule):
         # --------------------- Captioning Module ---------------------
         if not self.use_cac:
             if self.use_attention:
-                self.attention_module = AttentionModule(in_size=32, out_size=1, hidden_size=128,
+                self.attention_module = AttentionModule(in_size=CONF.attention_module.in_size,
+                                                        out_size=CONF.attention_module.out_size,
+                                                        hidden_size=CONF.attention_module.hidden_size,
                                                         use_relation=self.use_relation,
                                                         return_orientation=CONF.graph_module.return_orientation)
 
-            self.caption_module = CaptionModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
-                                                hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
-                                                use_relation=self.use_relation, use_attention=self.use_attention)
+            self.caption_module = CaptionModule(self.vocabulary, self.embeddings,
+                                                emb_size=CONF.caption_module.emb_size,
+                                                feat_size=CONF.caption_module.feat_size,
+                                                hidden_size=CONF.caption_module.hidden_size,
+                                                num_proposals=CONF.train_cfg.max_proposal_num,
+                                                use_relation=self.use_relation,
+                                                use_attention=self.use_attention)
         if self.use_cac:
-            self.caption_module = CACModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
-                                            hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
+            self.caption_module = CACModule(self.vocabulary, self.embeddings,
+                                            emb_size=CONF.caption_module.emb_size,
+                                            feat_size=CONF.caption_module.feat_size,
+                                            hidden_size=CONF.caption_module.hidden_size,
+                                            num_proposals=CONF.train_cfg.max_proposal_num,
                                             use_relation=self.use_relation)
 
     def training_step(self, batch):
@@ -149,7 +158,6 @@ class CapNet(pl.LightningModule):
             # print('caption ok')
             cap_loss = batch['cap_loss']
             cap_acc = batch['cap_acc']
-            # loss = 1 * detection_loss + 0.1 * cap_loss + 1 * (ori_loss + dist_loss)
             loss = 5 * detection_loss + 0.5 * cap_loss + 1 * (ori_loss + dist_loss)
 
             self.log("semantic_loss", semantic_loss, on_step=True, prog_bar=True, logger=True)
@@ -189,7 +197,7 @@ class CapNet(pl.LightningModule):
             sc_loss = torch.sum(sc_loss) / (torch.sum(mask) + 1e-6)
 
             out['loss'] = sc_loss
-            loss = detection_loss + 0.3 * (ori_loss + dist_loss) + sc_loss.mean()
+            loss = 5 * detection_loss + 0.5 * sc_loss.mean() + 1 * (ori_loss + dist_loss)
             self.log("semantic_loss", semantic_loss, on_step=True, prog_bar=True, logger=True)
             self.log("offset_loss", offset_loss, on_step=True, prog_bar=True, logger=True)
             self.log("cls_loss", cls_loss, on_step=True, prog_bar=True, logger=True)
@@ -260,7 +268,7 @@ class CapNet(pl.LightningModule):
             mask_pred[instance_idx, cur_proposals_idx[:, 1]] = 1
 
         clu_point = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
-        # M , num_point 表示有哪些点被group到这个proposal
+        # M , num_point
         clu_point[proposals_idx[:, 0].long(), proposals_idx[:, 1].long()] = 1
 
         final_proposals = clu_point * mask_pred  # M ,num_point final results points belong to the proposal

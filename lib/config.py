@@ -30,7 +30,7 @@ CONF.TRAIN.MAX_DES_LEN = 30
 CONF.TRAIN.MIN_IOU_THRESHOLD = 0
 CONF.TRAIN.OVERLAID_THRESHOLD = 0.5
 
-# softgroup conofig
+# softgroup module config
 CONF.softgroup = EasyDict()
 CONF.softgroup.in_channels = 3
 CONF.softgroup.channels = 32
@@ -81,10 +81,24 @@ CONF.PATH.OUTPUT = os.path.join(CONF.PATH.BASE, "outputs")
 
 # graph_module
 CONF.graph_module = EasyDict()
+CONF.graph_module.in_size = 32
+CONF.graph_module.out_size = 32
 CONF.graph_module.num_graph_steps = 2  # number of layers
 CONF.graph_module.num_proposals = 128  # max proposal
+CONF.graph_module.feat_size = 32
 CONF.graph_module.num_locals = 10  # number of neighboring proposal
-
 CONF.graph_module.query_mode = 'corner'  # ['corner', 'center']
 CONF.graph_module.graph_mode = 'edge_conv'  # ['graph_conv', 'edge_conv']
 CONF.graph_module.return_orientation = True
+
+# attention_module
+CONF.attention_module = EasyDict()
+CONF.attention_module.in_size = 32
+CONF.attention_module.out_size = 1
+CONF.attention_module.hidden_size = 128
+
+# caption module
+CONF.caption_module = EasyDict()
+CONF.caption_module.emb_size = 300
+CONF.caption_module.feat_size = 32
+CONF.caption_module.hidden_size = 300
