@@ -9,6 +9,18 @@ generate more reliable captions. A message passing graph model and an attention 
 features with relational information. Our method can effectively localize and describe objects in 3D scenes and 
 outperforms the existing baseline method with a significant improvement.
 
+## Results
+Quantitative results of 3D dense captioning on ScanRefer. All metrics are thresholded by IoU 0.5. Our method outperforms 
+all baselines with a remarkable margin.
+
+| Method      | Detection | CIDEr | BLEU-4 | METEOR | ROUGE | Detection<br/>mAP |
+|:------------|:---------|:------:|:------:|:------:|:-----:|:-------------------:|
+| Scan2Cap    |  VoteNet  | 15.71 |  9.01  |  7.18  | 14.92 | 32.09             |
+| X-Trans2Cap |  VoteNet  | 17.64 |  9.68  |  7.21  | 15.25 | 35.31             |
+| More        |  VoteNet  | 16.46 |  8.86  |  7.12  | 14.71 | 31.93             |
+| Ours(CE)    | SoftGroup | 30.76 | 16.30  | **13.83**  | 28.41 | 57.22             |
+| **Ours(CIDEr)** |        **SoftGroup**   | **36.27** | **18.66**  | 13.82  | **29.13** | **57.38**             |
+
 ## Installation
 1. Environment requirements
 
@@ -53,12 +65,12 @@ and [Scan2Cap/Data Preparation](https://github.com/daveredrum/Scan2Cap/blob/main
 ## Pretrained Models
 For SoftGroup pretrained models, please refer to [SoftGroup/Pretrained Models](https://github.com/thangvubk/SoftGroup#instance-segmentation)
 
-For SoftGroup pretrained models, please refer to following table
+For SoftCap pretrained models, please refer to the following table
 
 |  Model  | Network Architecture | Loss  |                                           Download                                         |
 |:-------:|:--------------------:|:-----:|:-------------------------------------------------------------------------------------------:|
-| SoftCap | SoftGroup + RG + CAC |  CE   | [model](https://drive.google.com/file/d/1-f7I6-eIma4OilBON928N6mVcYbhiUFP/view?usp=sharing) |
-| SoftCap | SoftGroup + RG + CAC | CIDEr | [model](https://drive.google.com/file/d/1-f7I6-eIma4OilBON928N6mVcYbhiUFP/view?usp=sharing) |
+| SoftCap | SoftGroup + RG + CAC |  CE   | [model](https://drive.google.com/file/d/1mn0TIUHtftwOovRTyVgbfs1qZLWmdCM_/view?usp=drive_link) |
+| SoftCap | SoftGroup + RG + CAC | CIDEr | [model](https://drive.google.com/file/d/1uf9jKmRVX1WIbvAlPAisp9ALao3hdRnB/view?usp=drive_link) |
 
 ## Training
 ```shell
