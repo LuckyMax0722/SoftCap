@@ -1,6 +1,6 @@
 # SoftCap: Dense Captioning for 3D Scenes with SparseConv
 
-<p align="center"><img src="Vis_Room.jpg" width="600px"/></p>
+<p align="center"><img src="demo/Vis_Room.jpg" width="600px"/></p>
 
 ## Introduction
 We propose a model using SoftGroup based detection backbone. With sparse convolution and soft grouping mechanism, 
