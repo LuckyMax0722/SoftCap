@@ -68,6 +68,7 @@ For more details about ScanNet, ScanRefer and Scan2CAD, you can also refer to [S
 and [Scan2Cap/Data Preparation](https://github.com/daveredrum/Scan2Cap/blob/main/README.md#data-preparation)
 
 ## Pretrained Models
+### SoftGroup Pretrained Models
 For SoftGroup pretrained models, please refer to the following table. Be aware that we do a re-labeling process before pretrain because the labeling in SoftGroup is not adapt to ScanRefer Dataset.
 
 |    Model    |                                           Download                                         |
@@ -76,6 +77,7 @@ For SoftGroup pretrained models, please refer to the following table. Be aware t
 
 For detail information about SoftGroup, please refer to [SoftGroup/Pretrained Models](https://github.com/thangvubk/SoftGroup#instance-segmentation)
 
+### SoftCap Pretrained Models
 For SoftCap pretrained models, please refer to the following table
 
 |  Model  | Network Architecture | Loss  |                                           Download                                         |
