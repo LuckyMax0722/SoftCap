@@ -8,13 +8,14 @@ import pickle
 import pytorch_lightning as pl
 import argparse
 import datetime
+from plyfile import PlyData, PlyElement
 
 sys.path.append(os.getcwd())  # HACK add the root folder
 from model.caption_module import CaptionModule
 from model.softgroup import SoftGroup
-from model.relation_graph_module import GraphModule, bbox_pred_module, bbox_pred_module_test
+from model.relation_graph_module import GraphModule, bbox_pred_module_train, bbox_pred_module_val
 from model.attention_module import AttentionModule
-from plyfile import PlyData, PlyElement
+from model.cac_caption_module import CACModule
 
 from utils.nn_distance import nn_distance
 from utils.box_util import box3d_iou_batch_tensor, get_3d_box_batch
@@ -30,8 +31,6 @@ from lib.dataset import ScannetReferenceDataset, ScannetReferenceTestDataset
 from lib.dataset import get_scanrefer
 from lib.config import CONF
 
-
-
 import glob
 from multiprocessing import Pool
 from eval_det import eval_det
@@ -45,7 +44,8 @@ GLOVE_PICKLE = os.path.join(CONF.PATH.DATA, "glove.p")
 
 
 class CapNetEval(pl.LightningModule):
-    def __init__(self, use_relation=True, use_attention=True, eval_detection=False, eval_caption=False, visualization=False, min_iou=0.5):
+    def __init__(self, use_relation=False, use_attention=False, use_cac=False, eval_detection=False, eval_caption=False,
+                 visualization=False, min_iou=0.5):
         super().__init__()
         self.n_gts = 0
         self.n_preds = 0
@@ -65,6 +65,7 @@ class CapNetEval(pl.LightningModule):
         self.min_iou = min_iou
         self.use_relation = use_relation
         self.use_attention = use_attention
+        self.use_cac = use_cac
 
         # Define the model
         # ----------- SoftGroup-based Detection Backbone --------------
@@ -78,8 +79,7 @@ class CapNetEval(pl.LightningModule):
                                           instance_voxel_cfg=CONF.instance_voxel_cfg,
                                           train_cfg=CONF.train_cfg,
                                           test_cfg=CONF.test_cfg,
-                                          fixed_modules=['input_conv', 'unet', 'output_layer', 'semantic_linear',
-                                                         'offset_linear'])
+                                          fixed_modules=[])
 
         # --------------------- Relation Module ---------------------
         self.relation_graph_module = GraphModule(in_size=32,
@@ -92,13 +92,32 @@ class CapNetEval(pl.LightningModule):
                                                  graph_mode=CONF.graph_module.graph_mode,
                                                  return_orientation=CONF.graph_module.return_orientation,
                                                  )
+
+        # --------------------- Captioning Module ---------------------
+        if not self.use_cac:
+            if self.use_attention:
+                self.attention_module = AttentionModule(in_size=32, out_size=1, hidden_size=128,
+                                                        use_relation=self.use_relation,
+                                                        return_orientation=CONF.graph_module.return_orientation)
+
+            self.caption_module = CaptionModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
+                                                hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
+                                                use_relation=self.use_relation, use_attention=self.use_attention)
+        if self.use_cac:
+            self.caption_module = CACModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
+                                            hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
+                                            use_relation=self.use_relation)
+
+        '''
         self.attention_module = AttentionModule(in_size=32, out_size=1, hidden_size=512, use_relation=self.use_relation,
                                                 return_orientation=CONF.graph_module.return_orientation)
+
 
         # --------------------- Captioning Module ---------------------
         self.caption_module = CaptionModule(self.vocabulary, self.embeddings, emb_size=300, feat_size=32,
                                             hidden_size=300, num_proposals=CONF.train_cfg.max_proposal_num,
                                             use_relation=self.use_relation, use_attention=self.use_attention)
+        '''
 
     def test_step(self, batch, batch_idx):  # batch size must be 1
         if self.eval_detection:
@@ -111,10 +130,11 @@ class CapNetEval(pl.LightningModule):
             batch = self.softgroup_module.forward(batch, mode='val')
 
             # graph_module
-            batch = bbox_pred_module_test(batch)
-            batch = self.relation_graph_module.forward_test(batch)
-
-            batch = self.attention_module.forward_val(batch)
+            if self.use_relation:
+                batch = bbox_pred_module_val(batch)
+                batch = self.relation_graph_module.forward_test(batch)
+            if (not self.use_cac) and self.use_attention:
+                batch = self.attention_module.forward_val(batch)
 
             # caption_module
             batch = self.caption_module.forward(batch, mode='val')
@@ -130,17 +150,17 @@ class CapNetEval(pl.LightningModule):
             max_cls_score, final_cls = cls_scores.max(1)  # M, 1 和 M, 1 每个proposal得到的分类最高分，以及属于哪个类
 
             mask_pred = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
-            for i in range(num_instances):
-                cur_mask_scores = mask_scores[:, final_cls[i]]  # N, 1， N个点对第i个proposal的类的mask score
+            for instance_idx in range(num_instances):
+                cur_mask_scores = mask_scores[:, final_cls[instance_idx]]  # N, 1， N个点对第i个proposal的类的mask score
                 mask_inds = cur_mask_scores > -0.5  # threshold 取mask高于阈值的点
                 cur_proposals_idx = proposals_idx[mask_inds].long()
-                mask_pred[
-                    cur_proposals_idx[:, 0], cur_proposals_idx[:, 1]] = 1  # M , num_point 表示有哪些点可能属于这个proposal对应的cls
+                # M , num_point 表示有哪些点可能属于这个proposal对应的cls
+                mask_pred[instance_idx, cur_proposals_idx[:, 1]] = 1
 
             clu_point = torch.zeros((num_instances, num_points), dtype=torch.int, device='cuda')  # M, num_point
-            for i in range(num_instances):
-                clu_point[
-                    proposals_idx[:, 0].long(), proposals_idx[:, 1].long()] = 1  # M , num_point 表示有哪些点被group到这个proposal
+            # M , num_point 表示有哪些点被group到这个proposal
+            clu_point[proposals_idx[:, 0].long(), proposals_idx[:, 1].long()] = 1
+
             final_proposals = clu_point * mask_pred  # M ,num_point 最终结果，最终的proposal中有哪些点
 
             final_proposals = final_proposals.cpu().numpy()
@@ -187,7 +207,7 @@ class CapNetEval(pl.LightningModule):
             ).view(1, num_instances)  # 1, M
 
             # find good boxes (IoU > threshold)
-            good_bbox_masks = ious > 0.5  # 1, M
+            good_bbox_masks = ious > self.min_iou  # 1, M
             valid_bbox_masks = final_cls != self.softgroup_module.instance_classes  # M
             iou_cache = {}
             for prop_id in range(num_instances):
@@ -253,7 +273,7 @@ class CapNetEval(pl.LightningModule):
             corpus_path = os.path.join(CONF.PATH.OUTPUT, "corpus_val.json")
             if not os.path.exists(corpus_path):
                 print("preparing corpus...")
-                raw_data = json.load(open(os.path.join(CONF.PATH.DATA, "ScanRefer_filtered_val.json")))
+                raw_data = json.load(open(os.path.join(CONF.PATH.DATA, "scanrefer/ScanRefer_filtered_val.json")))
                 corpus = prepare_corpus(raw_data, CONF.TRAIN.MAX_DES_LEN)
                 with open(corpus_path, "w") as f:
                     json.dump(corpus, f, indent=4)
@@ -377,7 +397,7 @@ class CapNetEval(pl.LightningModule):
 
             current_time = datetime.datetime.now()
             time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
-            with open("/home/luk/DenseCap/outputs/captioning_score_eval.txt", "a") as file:
+            with open("/home/jiachen/DenseCap/outputs/captioning_score_eval.txt", "a") as file:
                 file.write('当前时间： ' + time_string + '\n')
                 file.write('----Recall_scores----\n')
                 file.write('CIDEr_recall is: {:.15f}\n'.format(cider_recall))
@@ -398,7 +418,7 @@ class CapNetEval(pl.LightningModule):
 
                 if self.eval_detection:
                     file.write('----mAP_scores----\n')
-                    file.write('mAP@{}:{}\n'.format(iou_threshold,mAP))
+                    file.write('mAP@{}:{}\n'.format(iou_threshold, mAP))
 
             print('CIDEr_recall is:', cider_recall)
             print('BLEU-4_recall is:', bleu_recall)
@@ -504,7 +524,7 @@ class ScanReferEvalModule(pl.LightningDataModule):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--folder", type=str, help="Folder containing the model")
-    parser.add_argument("--min_iou", type=float, default=0.5, help="Min IoU threshold for evaluation")
+    parser.add_argument("--min_iou", type=float, default=0.25, help="Min IoU threshold for evaluation")
     parser.add_argument("--eval_detection", action="store_true", help="Evaluate the object detection performance.")
     parser.add_argument("--eval_caption", action="store_true", help="Evaluate the caption performance.")
     parser.add_argument("--visualization", action="store_true", help="Visualize the bbox in the scene.")
@@ -513,11 +533,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # debug用
-    args.eval_detection = False
+    args.eval_detection = True
     args.eval_caption = True
     args.visualization = False
-    args.use_relation = False
+    args.use_relation = True
     args.use_attention = False
+    args.use_cac = True
 
     # prepare dataset and dataloader
     data = ScanReferEvalModule()
@@ -525,14 +546,15 @@ if __name__ == "__main__":
     # create model
     model = CapNetEval(use_relation=args.use_relation,
                        use_attention=args.use_attention,
+                       use_cac=args.use_cac,
                        eval_detection=args.eval_detection,
                        eval_caption=args.eval_caption,
                        visualization=args.visualization,
                        min_iou=args.min_iou)
 
     # load model
-    file = '/home/luk/DenseCap/scripts/model0605_fixmodule_5.pth'
-    model.load_state_dict(torch.load(file),strict=False)
+    file = '/home/jiachen/DenseCap/scripts/model0625_12:16:49_relation_cac_sc_epoch12.pth'
+    model.load_state_dict(torch.load(file), strict=False)
 
     # create trainer
     trainer = pl.Trainer(accelerator='gpu', devices=1)
