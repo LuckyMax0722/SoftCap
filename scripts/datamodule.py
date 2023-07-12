@@ -5,7 +5,7 @@ import json
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 
-from lib.dataset import ScannetReferenceDataset, ScannetReferenceTestDataset
+from lib.dataset import ScannetReferenceDataset
 from lib.dataset import get_scanrefer
 from lib.config import CONF
 

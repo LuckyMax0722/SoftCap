@@ -49,7 +49,7 @@ class CapNetEval(pl.LightningModule):
         super().__init__()
         self.n_gts = 0
         self.n_preds = 0
-        self.results = []  # 用来验证map
+        self.results = []
         self.vocabulary = json.load(open(vocab_path))
         self.embeddings = pickle.load(open(GLOVE_PICKLE, "rb"))
         self.organized = json.load(open(os.path.join(CONF.PATH.DATA, "scanrefer/ScanRefer_filtered_organized.json")))
@@ -383,7 +383,7 @@ class CapNetEval(pl.LightningModule):
 
             current_time = datetime.datetime.now()
             time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
-            with open("/home/jiachen/DenseCap/outputs/captioning_score_eval.txt", "a") as file:
+            with open(f"{CONF.PATH.OUTPUT}/captioning_score_eval.txt", "a") as file:
                 file.write('Current Time： ' + time_string + '\n')
                 file.write('----Recall_scores----\n')
                 file.write('CIDEr_recall is: {:.15f}\n'.format(cider_recall))

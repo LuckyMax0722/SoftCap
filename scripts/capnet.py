@@ -13,8 +13,6 @@ from model.relation_graph_module import GraphModule, bbox_pred_module_train, bbo
 from model.attention_module import AttentionModule
 from model.cac_caption_module import CACModule
 
-from model.evaluation import (PanopticEval, ScanNetEval, evaluate_offset_mae,
-                              evaluate_semantic_acc, evaluate_semantic_miou)
 from utils.nn_distance import nn_distance
 from utils.box_util import box3d_iou_batch_tensor, box_assignment
 
@@ -34,9 +32,6 @@ from lib.config import CONF
 from plyfile import PlyData, PlyElement
 from utils.box_util import get_3d_box_batch
 import glob
-from multiprocessing import Pool
-from eval_det import eval_det
-from visualization import write_bbox
 from collections import OrderedDict
 import datetime
 
@@ -416,7 +411,7 @@ class CapNet(pl.LightningModule):
 
         current_time = datetime.datetime.now()
         time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
-        with open("/home/luk/DenseCap/outputs/captioning_score.txt", "a") as file:
+        with open(f"{CONF.PATH.OUTPUT}/captioning_score.txt", "a") as file:
             file.write('Current Time： ' + time_string + '\n')
             file.write(self.filename + '\n')
             file.write('----Recall_scores----\n')

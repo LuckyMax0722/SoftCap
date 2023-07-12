@@ -14,6 +14,7 @@ CONF.PATH.LIB = os.path.join(CONF.PATH.BASE, "lib")
 CONF.PATH.UTILS = os.path.join(CONF.PATH.BASE, "utils")
 CONF.PATH.PRETRAIN = '/home/luk/DenseCap/softgroup.pth'  # TODO: change this
 CONF.PATH.EVAL = '/home/luk/DenseCap/eval_model.pth'  # TODO: change this
+CONF.PATH.OUTPUT = os.path.join(CONF.PATH.BASE, "outputs")
 # model setting
 
 '''
@@ -110,9 +111,6 @@ CONF.train_cfg.pos_iou_thr = 0.5
 CONF.instance_voxel_cfg = EasyDict()
 CONF.instance_voxel_cfg.scale = 50
 CONF.instance_voxel_cfg.spatial_shape = 20
-
-# output
-CONF.PATH.OUTPUT = os.path.join(CONF.PATH.BASE, "outputs")
 
 # graph_module
 CONF.graph_module = EasyDict()
