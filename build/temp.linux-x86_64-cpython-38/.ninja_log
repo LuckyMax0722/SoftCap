@@ -1,0 +1,7 @@
+# ninja log v5
+0	13297	1685033056275670095	/home/jiachen/SoftGroup/build/temp.linux-x86_64-cpython-38/softgroup/ops/src/softgroup_ops.o	a5f27e392f4c84d7
+0	15732	1685033058707688335	/home/jiachen/SoftGroup/build/temp.linux-x86_64-cpython-38/softgroup/ops/src/softgroup_api.o	79e3363a360daf97
+0	16656	1685033059635695317	/home/jiachen/SoftGroup/build/temp.linux-x86_64-cpython-38/softgroup/ops/src/cuda.o	df522fd6f51dba38
+14	12708	1685033072847795945	/home/jiachen/SoftGroup/build/temp.linux-x86_64-cpython-38/softgroup/ops/src/softgroup_ops.o	732eb4e254b9182d
+13	15115	1685033075247814461	/home/jiachen/SoftGroup/build/temp.linux-x86_64-cpython-38/softgroup/ops/src/softgroup_api.o	5c22039b751eac64
+13	16253	1685033076391823313	/home/jiachen/SoftGroup/build/temp.linux-x86_64-cpython-38/softgroup/ops/src/cuda.o	a417441fd6d806b2
